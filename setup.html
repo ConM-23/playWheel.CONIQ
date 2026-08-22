@@ -5,24 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Setup — Spin the Wheel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
     theme: {
       extend: {
         colors: {
-          backstage: '#17151C',
-          panel: '#221F29',
-          marquee: '#E8A33D',
-          felt: '#4F7942',
-          ticket: '#F3EFE6',
-          dust: '#8B8394',
-          stamp: '#C1553D',
+          ink: '#121214',
+          paper: '#F6F3EC',
+          ember: '#D9491A',
+          slate: '#2F4A45',
+          sand: '#C9BFAE',
+          success: '#55857C',
         },
         fontFamily: {
-          display: ['"Big Shoulders Display"', 'sans-serif'],
-          body: ['Inter', 'sans-serif'],
+          display: ['"General Sans"', 'sans-serif'],
+          body: ['"General Sans"', 'sans-serif'],
           mono: ['"IBM Plex Mono"', 'monospace'],
         },
       },
@@ -30,66 +30,66 @@
   }
 </script>
 </head>
-<body class="bg-backstage font-body text-ticket antialiased min-h-screen">
+<body class="bg-ink font-body text-paper antialiased min-h-screen">
 
 <main class="min-h-screen px-6 py-10 hidden" id="app">
   <div class="max-w-2xl mx-auto pb-16">
-    <a href="./host.html" class="font-mono text-xs uppercase tracking-widest text-dust hover:text-marquee transition-colors">← Console</a>
+    <a href="./host.html" class="font-mono text-xs uppercase tracking-widest text-sand hover:text-ember transition-colors">← Console</a>
 
-    <p class="font-mono text-xs uppercase tracking-[0.2em] text-dust mt-6 mb-2">01 — Setup</p>
-    <h1 class="font-display text-3xl font-bold tracking-tight mb-8">Configure the wheel</h1>
+    <p class="font-mono text-xs uppercase tracking-[0.2em] text-sand mt-6 mb-2">01 — Setup</p>
+    <h1 class="font-display text-[40px] font-bold tracking-tight mb-8">Configure the wheel</h1>
 
-    <section class="rounded-2xl bg-panel border border-white/5 p-6 mb-6 space-y-5">
+    <section class="rounded-2xl bg-slate border border-paper/10 p-6 mb-6 space-y-5">
       <div>
-        <label class="block text-xs font-mono uppercase tracking-wider text-dust mb-1.5">Experience title</label>
+        <label class="block text-xs font-mono uppercase tracking-wider text-sand mb-2">Experience title</label>
         <input id="exp-title" type="text"
-          class="w-full rounded-lg bg-backstage border border-white/10 px-3.5 py-2.5 text-ticket focus:outline-none focus:ring-2 focus:ring-marquee" />
-        <p class="text-dust/60 text-xs mt-1.5">Shown above the wheel during play.</p>
+          class="w-full rounded-lg bg-ink border border-paper/20 px-4 py-3 text-paper focus:outline-none focus:ring-2 focus:ring-ember" />
+        <p class="text-sand/60 text-xs mt-2">Shown above the wheel during play.</p>
       </div>
 
       <div>
-        <label class="block text-xs font-mono uppercase tracking-wider text-dust mb-1.5">Registration link</label>
-        <div class="flex items-center rounded-lg bg-backstage border border-white/10 overflow-hidden focus-within:ring-2 focus-within:ring-marquee">
-          <span class="px-3.5 text-dust/60 text-sm font-mono">/r/</span>
-          <input id="exp-slug" type="text" class="flex-1 bg-transparent py-2.5 pr-3.5 text-ticket font-mono text-sm focus:outline-none" />
+        <label class="block text-xs font-mono uppercase tracking-wider text-sand mb-2">Registration link</label>
+        <div class="flex items-center rounded-lg bg-ink border border-paper/20 overflow-hidden focus-within:ring-2 focus-within:ring-ember">
+          <span class="px-4 text-sand/60 text-sm font-mono">/r/</span>
+          <input id="exp-slug" type="text" class="flex-1 bg-transparent py-3 pr-4 text-paper font-mono text-sm focus:outline-none" />
         </div>
-        <p class="text-dust/60 text-xs mt-1.5">What the QR code points to. Only letters, numbers, and dashes.</p>
+        <p class="text-sand/60 text-xs mt-2">What the QR code points to. Only letters, numbers, and dashes.</p>
       </div>
 
       <div class="flex items-center justify-between">
         <div class="pr-4">
-          <p class="text-sm text-ticket">Participant registration</p>
-          <p class="text-dust/60 text-xs mt-0.5">Off skips name/email — participants just tap to spin as guests.</p>
+          <p class="text-sm text-paper">Participant registration</p>
+          <p class="text-sand/60 text-xs mt-1">Off skips name/email — participants just tap to spin as guests.</p>
         </div>
         <button type="button" id="registration-toggle" data-on="true"
-          class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors bg-felt">
-          <span class="inline-block h-4 w-4 transform rounded-full bg-ticket transition-transform translate-x-6"></span>
+          class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors bg-success">
+          <span class="inline-block h-4 w-4 transform rounded-full bg-paper transition-transform translate-x-6"></span>
         </button>
       </div>
 
       <div>
-        <label class="block text-xs font-mono uppercase tracking-wider text-dust mb-1.5">Spins per participant</label>
+        <label class="block text-xs font-mono uppercase tracking-wider text-sand mb-2">Spins per participant</label>
         <input id="exp-spins" type="number" min="1"
-          class="w-28 rounded-lg bg-backstage border border-white/10 px-3.5 py-2.5 text-ticket focus:outline-none focus:ring-2 focus:ring-marquee" />
-        <p class="text-dust/60 text-xs mt-1.5" id="spins-hint">Must be at least the number of wheels below.</p>
+          class="w-28 rounded-lg bg-ink border border-paper/20 px-4 py-3 text-paper focus:outline-none focus:ring-2 focus:ring-ember" />
+        <p class="text-sand/60 text-xs mt-2" id="spins-hint">Must be at least the number of wheels below.</p>
       </div>
     </section>
 
     <div class="flex items-center justify-between mb-3">
-      <p class="font-mono text-xs uppercase tracking-wider text-dust">Wheels</p>
-      <button type="button" id="add-wheel-btn" class="text-sm text-marquee hover:brightness-110 transition font-medium">+ Add wheel</button>
+      <p class="font-mono text-xs uppercase tracking-wider text-sand">Wheels</p>
+      <button type="button" id="add-wheel-btn" class="text-sm text-ember hover:brightness-110 transition font-medium">+ Add wheel</button>
     </div>
     <div id="wheels-container" class="space-y-4 mb-6"></div>
 
-    <p id="validation-error" class="hidden text-sm text-stamp bg-stamp/10 border border-stamp/30 rounded-lg px-3 py-2 mb-6"></p>
-    <p id="save-success" class="hidden text-sm text-felt bg-felt/10 border border-felt/30 rounded-lg px-3 py-2 mb-6">Saved.</p>
+    <p id="validation-error" class="hidden text-sm text-ember bg-ember/10 border border-ember/30 rounded-lg px-3 py-2 mb-6"></p>
+    <p id="save-success" class="hidden text-sm text-success bg-success/10 border border-success/30 rounded-lg px-3 py-2 mb-6">Saved.</p>
 
     <div class="flex items-center gap-5">
       <button type="button" id="save-btn"
-        class="rounded-lg bg-marquee text-backstage font-semibold px-6 py-2.5 hover:brightness-110 transition">
+        class="rounded-lg bg-ember text-ink font-semibold px-6 py-3 hover:brightness-110 transition">
         Save configuration
       </button>
-      <button type="button" id="reset-btn" class="text-sm text-dust hover:text-stamp transition-colors">
+      <button type="button" id="reset-btn" class="text-sm text-sand hover:text-ember transition-colors">
         Reset wheels to default
       </button>
     </div>
@@ -111,8 +111,8 @@
 
   function setToggleUI(el, on) {
     el.dataset.on = on;
-    el.classList.toggle('bg-felt', on);
-    el.classList.toggle('bg-dust/30', !on);
+    el.classList.toggle('bg-success', on);
+    el.classList.toggle('bg-sand/30', !on);
     const dot = el.querySelector('span');
     dot.classList.toggle('translate-x-6', on);
     dot.classList.toggle('translate-x-1', !on);
@@ -134,39 +134,39 @@
 
   function wheelCardHTML(wheel, canRemove) {
     return `
-    <div class="rounded-2xl bg-panel border border-white/5 p-5" data-wheel-key="${wheel._key}">
+    <div class="rounded-2xl bg-slate border border-paper/10 p-5" data-wheel-key="${wheel._key}">
       <div class="flex items-center justify-between gap-3 mb-4">
         <input type="text" data-field="name" value="${escapeAttr(wheel.name)}"
-          class="font-display text-lg font-bold bg-transparent border-b border-transparent hover:border-white/10 focus:border-marquee focus:outline-none px-0.5 py-1 flex-1" />
-        ${canRemove ? `<button type="button" data-action="remove-wheel" class="text-xs font-mono uppercase tracking-wider text-dust hover:text-stamp transition-colors">Remove</button>` : ''}
+          class="font-display text-[28px] font-bold bg-transparent border-b border-transparent hover:border-paper/10 focus:border-ember focus:outline-none px-0.5 py-1 flex-1" />
+        ${canRemove ? `<button type="button" data-action="remove-wheel" class="text-xs font-mono uppercase tracking-wider text-sand hover:text-ember transition-colors">Remove</button>` : ''}
       </div>
 
       <div class="mb-4">
-        <label class="block text-xs font-mono uppercase tracking-wider text-dust mb-1.5">Land a prize every</label>
+        <label class="block text-xs font-mono uppercase tracking-wider text-sand mb-2">Land a prize every</label>
         <div class="flex items-center gap-2">
           <input type="number" min="1" data-field="prize_window_n" value="${wheel.prize_window_n}"
-            class="w-20 rounded-lg bg-backstage border border-white/10 px-3 py-2 text-ticket focus:outline-none focus:ring-2 focus:ring-marquee" />
-          <span class="text-dust text-sm">spin(s)</span>
+            class="w-20 rounded-lg bg-ink border border-paper/20 px-3 py-2 text-paper focus:outline-none focus:ring-2 focus:ring-ember" />
+          <span class="text-sand text-sm">spin(s)</span>
         </div>
       </div>
 
-      <label class="flex items-center gap-2.5 mb-3 cursor-pointer">
+      <label class="flex items-center gap-2 mb-3 cursor-pointer">
         <input type="checkbox" data-field="extra_spin_enabled" ${wheel.extra_spin_enabled ? 'checked' : ''}
-          class="h-4 w-4 rounded border-white/20 bg-backstage text-marquee focus:ring-marquee focus:ring-offset-0" />
-        <span class="text-sm text-ticket">Extra-spin consolation can be awarded</span>
+          class="h-4 w-4 rounded border-paper/20 bg-ink accent-ember focus:ring-ember focus:ring-offset-0" />
+        <span class="text-sm text-paper">Extra-spin consolation can be awarded</span>
       </label>
 
-      <label class="flex items-center gap-2.5 mb-2 cursor-pointer">
+      <label class="flex items-center gap-2 mb-2 cursor-pointer">
         <input type="checkbox" data-field="grand_prize_enabled" ${wheel.grand_prize_enabled ? 'checked' : ''}
-          class="h-4 w-4 rounded border-white/20 bg-backstage text-marquee focus:ring-marquee focus:ring-offset-0" />
-        <span class="text-sm text-ticket">Grand prize</span>
+          class="h-4 w-4 rounded border-paper/20 bg-ink accent-ember focus:ring-ember focus:ring-offset-0" />
+        <span class="text-sm text-paper">Grand prize</span>
       </label>
       <div data-section="grand-prize" class="${wheel.grand_prize_enabled ? '' : 'hidden'} flex items-center gap-2 ml-6 mt-2">
-        <span class="text-dust text-sm font-mono">on spin #</span>
+        <span class="text-sand text-sm font-mono">on spin #</span>
         <input type="number" min="1" data-field="grand_prize_spin_number" value="${wheel.grand_prize_spin_number ?? ''}"
-          class="w-20 rounded-lg bg-backstage border border-white/10 px-3 py-2 text-ticket focus:outline-none focus:ring-2 focus:ring-marquee" />
+          class="w-20 rounded-lg bg-ink border border-paper/20 px-3 py-2 text-paper focus:outline-none focus:ring-2 focus:ring-ember" />
         <button type="button" data-action="dice" title="Pick a random spin"
-          class="rounded-lg border border-white/10 hover:border-marquee/50 px-2.5 py-2 text-lg leading-none transition-colors">🎲</button>
+          class="rounded-lg border border-paper/20 hover:border-ember/50 px-3 py-2 text-lg leading-none transition-colors">🎲</button>
       </div>
     </div>`;
   }
@@ -181,12 +181,12 @@
     const hint = document.getElementById('spins-hint');
     if (spins < wheels.length) {
       hint.textContent = `Needs to be at least ${wheels.length} (you have ${wheels.length} wheel${wheels.length > 1 ? 's' : ''}).`;
-      hint.classList.add('text-stamp');
-      hint.classList.remove('text-dust/60');
+      hint.classList.add('text-ember');
+      hint.classList.remove('text-sand/60');
     } else {
       hint.textContent = 'Must be at least the number of wheels below.';
-      hint.classList.remove('text-stamp');
-      hint.classList.add('text-dust/60');
+      hint.classList.remove('text-ember');
+      hint.classList.add('text-sand/60');
     }
   }
   document.getElementById('exp-spins').addEventListener('input', validateSpinsVsWheels);
