@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CONIQ Studio — Spin the Wheel</title>
+<title>Host Console — Spin the Wheel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
@@ -79,7 +79,7 @@
   }
 
   const TILES = [
-    { number: '01', name: 'Setup', ready: true },
+    { number: '01', name: 'Setup', ready: true, href: './setup.html' },
     { number: '02', name: 'Style', ready: false },
     { number: '03', name: 'Inventory', ready: false },
     { number: '04', name: 'Play', ready: false },
@@ -88,12 +88,8 @@
 
   function renderTiles() {
     const container = document.getElementById('tiles');
-    container.innerHTML = TILES.map(tile => `
-      <div class="relative rounded-2xl border p-5 aspect-square flex flex-col justify-between ${
-        tile.ready
-          ? 'bg-panel border-white/5 hover:border-marquee/40 cursor-pointer transition-colors'
-          : 'bg-panel/50 border-white/5 opacity-60'
-      }">
+    container.innerHTML = TILES.map(tile => {
+      const inner = `
         <div class="flex items-center justify-between">
           <span class="font-mono text-xs text-dust">${tile.number}</span>
           <span class="h-2 w-2 rounded-full ${
@@ -104,8 +100,16 @@
           <p class="font-display text-xl font-bold">${tile.name}</p>
           ${!tile.ready ? '<p class="font-mono text-[10px] uppercase tracking-wider text-dust mt-1">Coming soon</p>' : ''}
         </div>
-      </div>
-    `).join('');
+      `;
+      const classes = `relative rounded-2xl border p-5 aspect-square flex flex-col justify-between ${
+        tile.ready
+          ? 'bg-panel border-white/5 hover:border-marquee/40 cursor-pointer transition-colors'
+          : 'bg-panel/50 border-white/5 opacity-60 cursor-default'
+      }`;
+      return tile.ready
+        ? `<a href="${tile.href}" class="${classes}">${inner}</a>`
+        : `<div class="${classes}">${inner}</div>`;
+    }).join('');
   }
 
   const experience = await getOrCreateExperience();
