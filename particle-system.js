@@ -8,9 +8,9 @@
 // USAGE
 //   import { FloatingParticleSystem } from './particle-system.js';
 //   const arena = document.getElementById('my-arena'); // position:relative, overflow:hidden
-//   const system = new FloatingParticleSystem(arena, { count: 10, radius: 15 });
-//   system.setWheelBounds({ cx: 160, cy: 160, r: 104 }); // keep-out circle, arena-local coords
-//   system.setCategory('planets');       // or 'golf' | 'soccer' | 'leaves' | 'coffee' | 'emoji3d' | 'custom' | 'none'
+//   const system = new FloatingParticleSystem(arena, { count: 10, minRadius: 12, maxRadius: 26 });
+//   system.setWheelBounds({ cx: 160, cy: 160, r: 104 }); // wheel circle, arena-local coords
+//   system.setCategory('planets');       // or 'ice' | 'golf' | 'soccer' | 'leaves' | 'coffee' | 'emoji3d' | 'custom' | 'none'
 //   system.setUploadedIcons([url1, url2]); // switches to 'custom' automatically
 //   system.setCount(14);
 //   system.applySpinForce(6);            // call when the wheel starts spinning
@@ -31,6 +31,19 @@ const CSS_TEXT = `
 .fps-particle { position:absolute; top:0; left:0; will-change:transform; }
 .fps-particle-inner { width:100%; height:100%; position:relative; }
 
+/* ---------- Ice block ---------- */
+.fps-ice {
+  width:100%; height:100%; border-radius:18%;
+  background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(191,229,255,0.6) 45%, rgba(110,170,215,0.5) 100%);
+  box-shadow: inset 0 0 6px rgba(255,255,255,0.7), inset -4px -4px 6px rgba(70,130,180,0.35), 0 2px 4px rgba(0,0,0,0.18);
+  border: 1px solid rgba(255,255,255,0.55);
+  position:relative;
+}
+.fps-ice::before {
+  content:''; position:absolute; top:18%; left:20%; width:28%; height:28%; border-radius:50%;
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.15) 70%, transparent 100%);
+}
+
 /* ---------- Golf ball ---------- */
 .fps-golf {
   width:100%; height:100%; border-radius:50%;
@@ -45,21 +58,21 @@ const CSS_TEXT = `
 /* ---------- Soccer ball ---------- */
 .fps-soccer {
   width:100%; height:100%; border-radius:50%; position:relative; overflow:hidden;
-  background: radial-gradient(circle at 35% 30%, #ffffff 0%, #f0f0f0 40%, #cfcfcf 100%);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.35);
+  background: radial-gradient(circle at 32% 28%, #ffffff 0%, #f2f2f2 35%, #d8d8d8 68%, #b0b0b0 100%);
+  box-shadow: inset -5px -5px 9px rgba(0,0,0,0.28), inset 3px 3px 5px rgba(255,255,255,0.55), 0 2px 4px rgba(0,0,0,0.35);
 }
-.fps-soccer::before, .fps-soccer::after {
-  content:''; position:absolute; width:36%; height:36%; background:#1a1a1a;
+.fps-soccer-patch {
+  position:absolute; background:#1a1a1a;
   clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+  box-shadow: inset 0 0 2px rgba(255,255,255,0.12);
 }
-.fps-soccer::before { top:10%; left:30%; transform:rotate(8deg); }
-.fps-soccer::after  { bottom:8%; left:6%; transform:rotate(-18deg) scale(0.8); }
 
 /* ---------- Autumn leaves ---------- */
-.fps-leaf { width:100%; height:100%; box-shadow: 1px 2px 3px rgba(0,0,0,0.25); }
+.fps-leaf { width:100%; height:100%; position:relative; box-shadow: 1px 2px 3px rgba(0,0,0,0.3); }
 .fps-leaf-maple { clip-path: polygon(50% 0%, 61% 20%, 80% 15%, 72% 35%, 95% 40%, 76% 52%, 88% 72%, 65% 66%, 60% 90%, 50% 72%, 40% 90%, 35% 66%, 12% 72%, 24% 52%, 5% 40%, 28% 35%, 20% 15%, 39% 20%); }
-.fps-leaf-oak   { border-radius: 40% 60% 40% 60% / 60% 40% 60% 40%; }
-.fps-leaf-birch { border-radius: 0% 100% 0% 100%; }
+.fps-leaf-oak   { clip-path: polygon(50% 0%, 65% 8%, 60% 20%, 78% 22%, 68% 34%, 85% 38%, 72% 48%, 88% 54%, 70% 62%, 82% 72%, 62% 74%, 65% 92%, 50% 78%, 35% 92%, 38% 74%, 18% 72%, 30% 62%, 12% 54%, 28% 48%, 15% 38%, 32% 34%, 22% 22%, 40% 20%, 35% 8%); }
+.fps-leaf-birch { clip-path: polygon(50% 0%, 66% 10%, 76% 30%, 78% 55%, 68% 78%, 50% 100%, 32% 78%, 22% 55%, 24% 30%, 34% 10%); }
+.fps-leaf-vein { position:absolute; background: rgba(0,0,0,0.22); border-radius:2px; }
 
 /* ---------- Planets ---------- */
 .fps-planet { width:100%; height:100%; border-radius:50%; position:relative; }
@@ -113,20 +126,50 @@ function leafColor() {
   const palette = ['#EAB308', '#F59E0B', '#EA580C', '#C2410C', '#B91C1C'];
   return palette[Math.floor(Math.random() * palette.length)];
 }
+function shade(hex, percent) {
+  const num = parseInt(hex.slice(1), 16);
+  let r = Math.max(0, Math.min(255, (num >> 16) + percent));
+  let g = Math.max(0, Math.min(255, ((num >> 8) & 0x00ff) + percent));
+  let b = Math.max(0, Math.min(255, (num & 0x0000ff) + percent));
+  return '#' + (0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1);
+}
+function leafGradient(hex) {
+  return `linear-gradient(160deg, ${shade(hex, 55)} 0%, ${hex} 55%, ${shade(hex, -45)} 100%)`;
+}
+function leafVeins() {
+  return `
+    <span class="fps-leaf-vein" style="left:48%; top:4%; width:4%; height:88%; transform-origin:top center; transform:rotate(1deg);"></span>
+    <span class="fps-leaf-vein" style="left:50%; top:26%; width:22%; height:3%; transform-origin:left center; transform:rotate(35deg);"></span>
+    <span class="fps-leaf-vein" style="left:50%; top:46%; width:20%; height:3%; transform-origin:left center; transform:rotate(32deg);"></span>
+    <span class="fps-leaf-vein" style="left:28%; top:26%; width:22%; height:3%; transform-origin:right center; transform:rotate(-35deg);"></span>
+    <span class="fps-leaf-vein" style="left:28%; top:46%; width:20%; height:3%; transform-origin:right center; transform:rotate(-32deg);"></span>
+  `;
+}
+function soccerPatches() {
+  return `
+    <span class="fps-soccer-patch" style="width:30%;height:28%;top:36%;left:35%;transform:rotate(10deg);"></span>
+    <span class="fps-soccer-patch" style="width:24%;height:22%;top:6%;left:38%;transform:rotate(0deg) scale(0.85);opacity:0.95;"></span>
+    <span class="fps-soccer-patch" style="width:24%;height:22%;top:20%;left:68%;transform:rotate(70deg) scale(0.85);opacity:0.95;"></span>
+    <span class="fps-soccer-patch" style="width:24%;height:22%;top:56%;left:60%;transform:rotate(140deg) scale(0.85);opacity:0.9;"></span>
+    <span class="fps-soccer-patch" style="width:24%;height:22%;top:56%;left:12%;transform:rotate(-140deg) scale(0.85);opacity:0.9;"></span>
+    <span class="fps-soccer-patch" style="width:24%;height:22%;top:20%;left:6%;transform:rotate(-70deg) scale(0.85);opacity:0.95;"></span>
+  `;
+}
 
 // ---------- Category registry ----------
 // Add a category by adding a key here with a `variants` array. Each
 // variant's build(el) mutates the wrapper div into that shape. See the
 // guide at the bottom of this file for a worked example.
 export const CATEGORY_DEFS = {
+  ice:     { label: 'Ice Blocks',    variants: [{ build(el) { el.className = 'fps-ice'; } }] },
   golf:    { label: 'Golf Balls',    variants: [{ build(el) { el.className = 'fps-golf'; } }] },
-  soccer:  { label: 'Soccer Balls',  variants: [{ build(el) { el.className = 'fps-soccer'; } }] },
+  soccer:  { label: 'Soccer Balls',  variants: [{ build(el) { el.className = 'fps-soccer'; el.innerHTML = soccerPatches(); } }] },
   leaves:  {
     label: 'Autumn Leaves',
     variants: [
-      { build(el) { el.className = 'fps-leaf fps-leaf-maple'; el.style.background = leafColor(); } },
-      { build(el) { el.className = 'fps-leaf fps-leaf-oak';   el.style.background = leafColor(); } },
-      { build(el) { el.className = 'fps-leaf fps-leaf-birch'; el.style.background = leafColor(); } },
+      { build(el) { const c = leafColor(); el.className = 'fps-leaf fps-leaf-maple'; el.style.background = leafGradient(c); el.innerHTML = leafVeins(); } },
+      { build(el) { const c = leafColor(); el.className = 'fps-leaf fps-leaf-oak';   el.style.background = leafGradient(c); el.innerHTML = leafVeins(); } },
+      { build(el) { const c = leafColor(); el.className = 'fps-leaf fps-leaf-birch'; el.style.background = leafGradient(c); el.innerHTML = leafVeins(); } },
     ],
   },
   planets: {
@@ -171,16 +214,37 @@ export class FloatingParticleSystem {
     this.driftForce = options.driftForce ?? 0.01;
     this.restitution = options.restitution ?? 1;
     this.count = options.count ?? 10;
-    this.radius = options.radius ?? 15;
+    this.minRadius = options.minRadius ?? 12;
+    this.maxRadius = options.maxRadius ?? 26;
     this.category = null;
     this.uploadedIcons = [];
     this.particles = [];
     this._frame = null;
     this._running = false;
+    this._applyWheelMask();
   }
 
-  setWheelBounds({ cx, cy, r }) { this.wheel = { cx, cy, r }; }
+  setWheelBounds({ cx, cy, r }) {
+    this.wheel = { cx, cy, r };
+    this._applyWheelMask();
+  }
   setCount(n) { this.count = n; this._respawn(); }
+
+  // Cuts a hole in the particle container exactly matching the wheel's
+  // circle, so anything drawn in the container (any particle, wherever it
+  // currently is) is naturally, continuously clipped as it crosses that
+  // boundary — no per-frame front/behind toggling, no popping.
+  _applyWheelMask() {
+    const { cx, cy, r } = this.wheel;
+    if (!r) {
+      this.container.style.maskImage = '';
+      this.container.style.webkitMaskImage = '';
+      return;
+    }
+    const mask = `radial-gradient(circle at ${cx}px ${cy}px, rgba(0,0,0,0) ${r}px, rgba(0,0,0,1) ${r + 1}px)`;
+    this.container.style.maskImage = mask;
+    this.container.style.webkitMaskImage = mask;
+  }
 
   setCategory(name) {
     this.category = name;
@@ -235,7 +299,7 @@ export class FloatingParticleSystem {
   }
 
   _spawnOne(w, h) {
-    const r = this.radius;
+    const r = this.minRadius + Math.random() * (this.maxRadius - this.minRadius);
     let x, y, tries = 0;
     do {
       x = r + Math.random() * (w - r * 2);
@@ -245,145 +309,4 @@ export class FloatingParticleSystem {
 
     const wrapper = document.createElement('div');
     wrapper.className = 'fps-particle';
-    wrapper.style.width = wrapper.style.height = r * 2 + 'px';
-    const inner = document.createElement('div');
-    inner.className = 'fps-particle-inner';
-    wrapper.appendChild(inner);
-
-    if (this.category === 'custom') {
-      const img = document.createElement('img');
-      img.className = 'fps-custom-img';
-      img.src = this.uploadedIcons[Math.floor(Math.random() * this.uploadedIcons.length)];
-      inner.appendChild(img);
-    } else {
-      const def = CATEGORY_DEFS[this.category];
-      const variant = def.variants[Math.floor(Math.random() * def.variants.length)];
-      variant.build(inner);
-    }
-
-    this.container.appendChild(wrapper);
-
-    return {
-      x, y, r,
-      vx: (Math.random() - 0.5) * 0.6,
-      vy: (Math.random() - 0.5) * 0.6,
-      angle: Math.random() * 360,
-      angularVelocity: (Math.random() - 0.5) * 1.2,
-      flutterPhase: Math.random() * Math.PI * 2,
-      el: wrapper,
-    };
-  }
-
-  _loop() {
-    if (!this._running) return;
-    this._step();
-    this._frame = requestAnimationFrame(() => this._loop());
-  }
-
-  _step() {
-    const w = this.container.clientWidth;
-    const h = this.container.clientHeight;
-    const { cx, cy, r: wheelR } = this.wheel;
-
-    this.particles.forEach(p => {
-      p.vx += (Math.random() - 0.5) * this.driftForce;
-      p.vy += (Math.random() - 0.5) * this.driftForce;
-      p.vx *= this.friction;
-      p.vy *= this.friction;
-      p.x += p.vx;
-      p.y += p.vy;
-      p.angle += p.angularVelocity;
-      p.angularVelocity *= 0.995;
-    });
-
-    this.particles.forEach(p => {
-      if (p.x < p.r) { p.x = p.r; p.vx *= -this.restitution; }
-      if (p.x > w - p.r) { p.x = w - p.r; p.vx *= -this.restitution; }
-      if (p.y < p.r) { p.y = p.r; p.vy *= -this.restitution; }
-      if (p.y > h - p.r) { p.y = h - p.r; p.vy *= -this.restitution; }
-    });
-
-    this.particles.forEach(p => {
-      const dx = p.x - cx, dy = p.y - cy;
-      const dist = Math.hypot(dx, dy);
-      const minDist = wheelR + p.r;
-      if (dist < minDist && dist > 0) {
-        const nx = dx / dist, ny = dy / dist;
-        p.x = cx + nx * minDist;
-        p.y = cy + ny * minDist;
-        const vn = p.vx * nx + p.vy * ny;
-        p.vx -= (1 + this.restitution) * vn * nx;
-        p.vy -= (1 + this.restitution) * vn * ny;
-        p.angularVelocity += (p.vx * -ny + p.vy * nx) * 0.05;
-      }
-    });
-
-    for (let i = 0; i < this.particles.length; i++) {
-      for (let j = i + 1; j < this.particles.length; j++) {
-        const a = this.particles[i], b = this.particles[j];
-        const dx = b.x - a.x, dy = b.y - a.y;
-        const dist = Math.hypot(dx, dy);
-        const minDist = a.r + b.r;
-        if (dist < minDist && dist > 0) {
-          const nx = dx / dist, ny = dy / dist;
-          const overlap = (minDist - dist) / 2;
-          a.x -= nx * overlap; a.y -= ny * overlap;
-          b.x += nx * overlap; b.y += ny * overlap;
-          const avn = a.vx * nx + a.vy * ny;
-          const bvn = b.vx * nx + b.vy * ny;
-          a.vx += (bvn - avn) * nx; a.vy += (bvn - avn) * ny;
-          b.vx += (avn - bvn) * nx; b.vy += (avn - bvn) * ny;
-          a.angularVelocity += (bvn - avn) * 0.08;
-          b.angularVelocity += (avn - bvn) * 0.08;
-        }
-      }
-    }
-
-    this.particles.forEach(p => {
-      const flutter = Math.sin(performance.now() / 500 + p.flutterPhase) * 4;
-      p.el.style.transform = `translate(${p.x - p.r}px, ${p.y - p.r}px) rotate(${p.angle + flutter}deg)`;
-    });
-  }
-}
-
-// =====================================================================
-// GUIDE
-// =====================================================================
-//
-// ADDING A NEW CSS-RENDERED CATEGORY
-// -----------------------------------
-// 1. Add CSS to CSS_TEXT above (a `.fps-yourthing { width:100%; height:100%; ... }`
-//    rule — always size to 100%/100% of the wrapper, the engine controls
-//    actual pixel size via the wrapper).
-// 2. Add an entry to CATEGORY_DEFS:
-//      snowflake: { label: 'Snowflakes', variants: [{ build(el) { el.className = 'fps-snowflake'; } }] }
-// 3. It now appears wherever you list Object.keys(CATEGORY_DEFS) in your UI.
-//
-// ADDING A NEW EMOJI-STYLE VARIANT (within emoji3d)
-// -----------------------------------
-// Push another { build(el) {...} } into CATEGORY_DEFS.emoji3d.variants.
-// Reuse faceBase(el, '') for a glossy-sphere face base, or build a fresh
-// shape from scratch — build(el) can set className and/or innerHTML freely.
-//
-// INTEGRATING PNG UPLOADS
-// -----------------------------------
-// You handle the actual upload (to Supabase Storage or anywhere else) —
-// this module just needs the resulting public URLs:
-//   system.setUploadedIcons(['https://.../a.png', 'https://.../b.png']);
-// One icon -> every particle uses it. Several -> each spawn randomly picks
-// one, so across many particles the split evens out naturally.
-//
-// ADJUSTING PHYSICS FOR DIFFERENT WHEEL BEHAVIOURS
-// -----------------------------------
-// Constructor options (or set directly on the instance, takes effect next frame):
-//   friction      0–1, closer to 1 = less drag, particles coast longer (default 0.996)
-//   driftForce    ambient random jitter added every frame (default 0.01)
-//   restitution   collision bounciness, 1 = perfectly elastic, <1 = energy loss on impact (default 1)
-//   radius        particle size in px (default 15)
-//   count         particle count (default 10) — setCount(n) respawns immediately
-// For a calmer wheel: lower driftForce (e.g. 0.003) and raise friction
-// slightly won't help since 0.996 is already high — instead lower
-// restitution to ~0.85 so collisions settle down over time.
-// For a punchier spin reaction: raise the strength argument passed to
-// applySpinForce(), or lower the r*3 falloff divisor in applySpinForce()
-// so the push reaches further from the wheel.
+    wrapper.style.width = wrapper.sty
