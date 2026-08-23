@@ -309,4 +309,149 @@ export class FloatingParticleSystem {
 
     const wrapper = document.createElement('div');
     wrapper.className = 'fps-particle';
-    wrapper.style.width = wrapper.sty
+    wrapper.style.width = wrapper.style.height = r * 2 + 'px';
+    const inner = document.createElement('div');
+    inner.className = 'fps-particle-inner';
+    wrapper.appendChild(inner);
+
+    if (this.category === 'custom') {
+      const img = document.createElement('img');
+      img.className = 'fps-custom-img';
+      img.src = this.uploadedIcons[Math.floor(Math.random() * this.uploadedIcons.length)];
+      inner.appendChild(img);
+    } else {
+      const def = CATEGORY_DEFS[this.category];
+      const variant = def.variants[Math.floor(Math.random() * def.variants.length)];
+      variant.build(inner);
+    }
+
+    this.container.appendChild(wrapper);
+
+    return {
+      x, y, r,
+      vx: (Math.random() - 0.5) * 0.6,
+      vy: (Math.random() - 0.5) * 0.6,
+      angle: Math.random() * 360,
+      angularVelocity: (Math.random() - 0.5) * 1.2,
+      flutterPhase: Math.random() * Math.PI * 2,
+      el: wrapper,
+    };
+  }
+
+  _loop() {
+    if (!this._running) return;
+    this._step();
+    this._frame = requestAnimationFrame(() => this._loop());
+  }
+
+  _step() {
+    const w = this.container.clientWidth;
+    const h = this.container.clientHeight;
+    const { cx, cy, r: wheelR } = this.wheel;
+
+    this.particles.forEach(p => {
+      p.vx += (Math.random() - 0.5) * this.driftForce;
+      p.vy += (Math.random() - 0.5) * this.driftForce;
+      p.vx *= this.friction;
+      p.vy *= this.friction;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.angle += p.angularVelocity;
+      p.angularVelocity *= 0.995;
+    });
+
+    // Edges: drift off-frame and wrap back in from a random point on the
+    // opposite side, rather than bouncing. The wheel is intentionally NOT
+    // a physical obstacle here — particles pass freely behind it via the
+    // CSS mask set up in _applyWheelMask(), not any per-frame logic here.
+    this.particles.forEach(p => {
+      const margin = p.r * 2;
+      if (p.x < -margin) { p.x = w + margin; p.y = Math.random() * h; }
+      else if (p.x > w + margin) { p.x = -margin; p.y = Math.random() * h; }
+      if (p.y < -margin) { p.y = h + margin; p.x = Math.random() * w; }
+      else if (p.y > h + margin) { p.y = -margin; p.x = Math.random() * w; }
+    });
+
+    for (let i = 0; i < this.particles.length; i++) {
+      for (let j = i + 1; j < this.particles.length; j++) {
+        const a = this.particles[i], b = this.particles[j];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const dist = Math.hypot(dx, dy);
+        const minDist = a.r + b.r;
+        if (dist < minDist && dist > 0) {
+          const nx = dx / dist, ny = dy / dist;
+          const overlap = (minDist - dist) / 2;
+          a.x -= nx * overlap; a.y -= ny * overlap;
+          b.x += nx * overlap; b.y += ny * overlap;
+          const avn = a.vx * nx + a.vy * ny;
+          const bvn = b.vx * nx + b.vy * ny;
+          a.vx += (bvn - avn) * nx; a.vy += (bvn - avn) * ny;
+          b.vx += (avn - bvn) * nx; b.vy += (avn - bvn) * ny;
+          a.angularVelocity += (bvn - avn) * 0.08;
+          b.angularVelocity += (avn - bvn) * 0.08;
+        }
+      }
+    }
+
+    this.particles.forEach(p => {
+      const flutter = Math.sin(performance.now() / 500 + p.flutterPhase) * 4;
+      p.el.style.transform = `translate(${p.x - p.r}px, ${p.y - p.r}px) rotate(${p.angle + flutter}deg)`;
+    });
+  }
+}
+
+// =====================================================================
+// GUIDE
+// =====================================================================
+//
+// ADDING A NEW CSS-RENDERED CATEGORY
+// -----------------------------------
+// 1. Add CSS to CSS_TEXT above (a `.fps-yourthing { width:100%; height:100%; ... }`
+//    rule — always size to 100%/100% of the wrapper, the engine controls
+//    actual pixel size via the wrapper).
+// 2. Add an entry to CATEGORY_DEFS:
+//      snowflake: { label: 'Snowflakes', variants: [{ build(el) { el.className = 'fps-snowflake'; } }] }
+// 3. It now appears wherever you list Object.keys(CATEGORY_DEFS) in your UI.
+//
+// ADDING A NEW EMOJI-STYLE VARIANT (within emoji3d)
+// -----------------------------------
+// Push another { build(el) {...} } into CATEGORY_DEFS.emoji3d.variants.
+// Reuse faceBase(el, '') for a glossy-sphere face base, or build a fresh
+// shape from scratch — build(el) can set className and/or innerHTML freely.
+//
+// INTEGRATING PNG UPLOADS
+// -----------------------------------
+// You handle the actual upload (to Supabase Storage or anywhere else) —
+// this module just needs the resulting public URLs:
+//   system.setUploadedIcons(['https://.../a.png', 'https://.../b.png']);
+// One icon -> every particle uses it. Several -> each spawn randomly picks
+// one, so across many particles the split evens out naturally.
+//
+// ADJUSTING PHYSICS FOR DIFFERENT WHEEL BEHAVIOURS
+// -----------------------------------
+// Constructor options (or set directly on the instance, takes effect next frame):
+//   friction      0–1, closer to 1 = less drag, particles coast longer (default 0.996)
+//   driftForce    ambient random jitter added every frame (default 0.01)
+//   restitution   particle-particle collision bounciness, 1 = perfectly elastic (default 1)
+//   minRadius     smallest particle size in px (default 12)
+//   maxRadius     largest particle size in px (default 26) — each spawn picks a random size in between
+//   count         particle count (default 10) — setCount(n) respawns immediately
+//
+// Edges: particles are NOT walled in — once they drift past the edge by
+// more than 2×radius they wrap to a random point on the opposite side.
+// To make that feel slower/rarer, lower driftForce so particles wander
+// less; to make it feel busier, raise count or driftForce.
+//
+// The wheel: not a physics obstacle — particles pass freely behind it.
+// Occlusion is a CSS mask (radial-gradient hole matching the wheel's
+// circle) applied to the whole particle container via setWheelBounds(),
+// so any particle crossing that boundary is clipped continuously and
+// naturally, frame by frame, with no JS front/behind logic needed. If you
+// ever want the old "bounce off the wheel" behaviour for a different
+// context, that's a position-correction + velocity-reflection block
+// against a static circle at { cx, cy, r: wheelR + p.r } — same shape as
+// the wall-wrap block above, just with reflection instead of wrapping.
+//
+// For a punchier spin reaction: raise the strength argument passed to
+// applySpinForce(), or lower the r*3 falloff divisor inside it so the
+// push reaches further from the wheel.
