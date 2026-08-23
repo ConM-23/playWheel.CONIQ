@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Style — Spin the Wheel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink: '#121214',
+          paper: '#F6F3EC',
+          ember: '#D9491A',
+          slate: '#2F4A45',
+          sand: '#C9BFAE',
+          success: '#55857C',
+        },
+        fontFamily: {
+          display: ['"General Sans"', 'sans-serif'],
+          body: ['"General Sans"', 'sans-serif'],
+          mono: ['"IBM Plex Mono"', 'monospace'],
+        },
+      },
+    },
+  }
+</script>
+<style>
+  @keyframes drift {
+    0% { transform: translateY(-14px) translateX(0); opacity: 0; }
+    12% { opacity: 1; }
+    100% { transform: translateY(260px) translateX(12px); opacity: 0; }
+  }
+</style>
+</head>
+<body class="bg-ink font-body text-paper antialiased min-h-screen">
+
+<main class="min-h-screen px-6 py-10 hidden" id="app">
+  <div class="max-w-2xl mx-auto pb-16">
+    <a href="./host.html" class="font-mono text-xs uppercase tracking-widest text-sand hover:text-ember transition-colors">← Console</a>
+
+    <p class="font-mono text-xs uppercase tracking-[0.2em] text-sand mt-6 mb-2">02 — Style</p>
+    <h1 class="font-display text-[40px] font-bold tracking-tight mb-8">Choose a look</h1>
+
+    <!-- Live preview -->
+    <div class="flex justify-center mb-8">
+      <div class="relative" style="width:240px;height:240px;">
+        <canvas id="wheel-preview" width="240" height="240" class="rounded-full"></canvas>
+        <div id="preview-particles" class="absolute inset-0 pointer-events-none overflow-hidden rounded-full"></div>
+      </div>
+    </div>
+
+    <!-- Presets -->
+    <div class="mb-6">
+      <p class="font-mono text-xs uppercase tracking-wider text-sand mb-3">Presets</p>
+      <div id="presets-row" class="flex flex-wrap gap-2"></div>
+    </div>
+
+    <div id="style-form" class="space-y-6"></div>
+
+    <p id="validation-error" class="hidden text-sm text-ember bg-ember/10 border border-ember/30 rounded-lg px-3 py-2 mt-6"></p>
+    <p id="save-success" class="hidden text-sm text-success bg-success/10 border border-success/30 rounded-lg px-3 py-2 mt-6">Saved.</p>
+
+    <button type="button" id="save-btn"
+      class="mt-6 rounded-lg bg-ember text-ink font-semibold px-6 py-3 hover:brightness-110 transition">
+      Save style
+    </button>
+  </div>
+</main>
+
+<script type="module">
+  import { supabase } from './supabase-client.js';
+
+  let experience = null;
+
+  const PRESETS = {
+    coniq: {
+      bg_type: 'color', bg_color: '#121214', bg_image_url: null,
+      slice_mode: 'alternating', slice_color_1: '#2F4A45', slice_color_2: '#C9BFAE',
+      divider_color: '#F6F3EC',
+      spoke_type: 'icon', spoke_color: '#D9491A', spoke_image_url: null, spoke_icon: 'ring',
+      font_color_1: '#F6F3EC', font_color_2: '#121214',
+      animation: 'none',
+    },
+    midnight: {
+      bg_type: 'color', bg_color: '#0B1120', bg_image_url: null,
+      slice_mode: 'alternating', slice_color_1: '#1E293B', slice_color_2: '#334155',
+      divider_color: '#94A3B8',
+      spoke_type: 'color', spoke_color: '#38BDF8', spoke_image_url: null, spoke_icon: 'ring',
+      font_color_1: '#F1F5F9', font_color_2: '#F1F5F9',
+      animation: 'sparkle',
+    },
+    sunset: {
+      bg_type: 'color', bg_color: '#2B1207', bg_image_url: null,
+      slice_mode: 'alternating', slice_color_1: '#C2410C', slice_color_2: '#F59E0B',
+      divider_color: '#FFF7ED',
+      spoke_type: 'color', spoke_color: '#FDE68A', spoke_image_url: null, spoke_icon: 'star',
+      font_color_1: '#FFF7ED', font_color_2: '#2B1207',
+      animation: 'none',
+    },
+    emerald: {
+      bg_type: 'color', bg_color: '#0B1F17', bg_image_url: null,
+      slice_mode: 'alternating', slice_color_1: '#134E36', slice_color_2: '#1F7A54',
+      divider_color: '#D1FAE5',
+      spoke_type: 'color', spoke_color: '#34D399', spoke_image_url: null, spoke_icon: 'diamond',
+      font_color_1: '#ECFDF5', font_color_2: '#052E1B',
+      animation: 'leaves',
+    },
+  };
+
+  let style = { preset: 'coniq', ...PRESETS.coniq };
+
+  const PRESET_LABELS = { coniq: 'CONIQ', midnight: 'Midnight', sunset: 'Sunset', emerald: 'Emerald' };
+  const ICONS = ['ring', 'dot', 'diamond', 'star'];
+  const ANIMATIONS = [
+    { value: 'none', label: 'None' },
+    { value: 'ice', label: 'Ice' },
+    { value: 'leaves', label: 'Leaves' },
+    { value: 'sparkle', label: 'Sparkle' },
+  ];
+  const PARTICLE_EMOJI = { ice: '❄️', leaves: '🍃', sparkle: '✨' };
+
+  function isHex(v) { return /^#[0-9a-fA-F]{6}$/.test(v); }
+
+  // ---------- Canvas preview ----------
+  const imageCache = {};
+  function loadImage(url) {
+    return new Promise((resolve) => {
+      if (!url) return resolve(null);
+      if (imageCache[url]) return resolve(imageCache[url]);
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => { imageCache[url] = img; resolve(img); };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  }
+
+  function drawIcon(ctx, icon, cx, cy, r, color) {
+    ctx.fillStyle = color;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    if (icon === 'ring') {
+      ctx.beginPath(); ctx.arc(cx, cy, r * 0.55, 0, 2 * Math.PI); ctx.stroke();
+    } else if (icon === 'dot') {
+      ctx.beginPath(); ctx.arc(cx, cy, r * 0.35, 0, 2 * Math.PI); ctx.fill();
+    } else if (icon === 'diamond') {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - r * 0.6); ctx.lineTo(cx + r * 0.5, cy);
+      ctx.lineTo(cx, cy + r * 0.6); ctx.lineTo(cx - r * 0.5, cy);
+      ctx.closePath(); ctx.fill();
+    } else if (icon === 'star') {
+      const spikes = 5, outerR = r * 0.6, innerR = r * 0.28;
+      let rot = (Math.PI / 2) * 3, x, y;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - outerR);
+      for (let i = 0; i < spikes; i++) {
+        x = cx + Math.cos(rot) * outerR; y = cy + Math.sin(rot) * outerR;
+        ctx.lineTo(x, y); rot += Math.PI / spikes;
+        x = cx + Math.cos(rot) * innerR; y = cy + Math.sin(rot) * innerR;
+        ctx.lineTo(x, y); rot += Math.PI / spikes;
+      }
+      ctx.closePath(); ctx.fill();
+    }
+  }
+
+  async function drawPreview() {
+    const canvas = document.getElementById('wheel-preview');
+    const ctx = canvas.getContext('2d');
+    const size = canvas.width;
+    const cx = size / 2, cy = size / 2, r = size / 2 - 6;
+
+    ctx.clearRect(0, 0, size, size);
+
+    if (style.bg_type === 'image' && style.bg_image_url) {
+      const img = await loadImage(style.bg_image_url);
+      if (img) ctx.drawImage(img, 0, 0, size, size);
+      else { ctx.fillStyle = style.bg_color; ctx.fillRect(0, 0, size, size); }
+    } else {
+      ctx.fillStyle = style.bg_color;
+      ctx.fillRect(0, 0, size, size);
+    }
+
+    const sliceCount = 8;
+    const angleStep = (2 * Math.PI) / sliceCount;
+    for (let i = 0; i < sliceCount; i++) {
+      const start = i * angleStep - Math.PI / 2;
+      const end = start + angleStep;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, start, end);
+      ctx.closePath();
+      ctx.fillStyle = style.slice_mode === 'alternating'
+        ? (i % 2 === 0 ? style.slice_color_1 : style.slice_color_2)
+        : style.slice_color_1;
+      ctx.fill();
+      ctx.strokeStyle = style.divider_color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(start + angleStep / 2);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = style.slice_mode === 'alternating'
+        ? (i % 2 === 0 ? style.font_color_1 : style.font_color_2)
+        : style.font_color_1;
+      ctx.font = '11px "IBM Plex Mono", monospace';
+      ctx.fillText('PRIZE', r - 14, 4);
+      ctx.restore();
+    }
+
+    const hubR = r * 0.16;
+    if (style.spoke_type === 'image' && style.spoke_image_url) {
+      const img = await loadImage(style.spoke_image_url);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, hubR, 0, 2 * Math.PI);
+      ctx.clip();
+      if (img) ctx.drawImage(img, cx - hubR, cy - hubR, hubR * 2, hubR * 2);
+      ctx.restore();
+    } else {
+      ctx.beginPath();
+      ctx.arc(cx, cy, hubR, 0, 2 * Math.PI);
+      ctx.fillStyle = style.spoke_type === 'icon' ? style.bg_color : style.spoke_color;
+      ctx.fill();
+      if (style.spoke_type === 'icon') drawIcon(ctx, style.spoke_icon, cx, cy, hubR, style.spoke_color);
+    }
+    ctx.beginPath();
+    ctx.arc(cx, cy, hubR, 0, 2 * Math.PI);
+    ctx.strokeStyle = style.divider_color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  function renderParticles() {
+    const el = document.getElementById('preview-particles');
+    if (style.animation === 'none') { el.innerHTML = ''; return; }
+    const emoji = PARTICLE_EMOJI[style.animation];
+    el.innerHTML = Array.from({ length: 6 }).map((_, i) => `
+      <span class="absolute text-sm" style="left:${8 + i * 15}%; top:-14px; animation: drift ${4 + (i % 3)}s linear ${i * 0.6}s infinite;">${emoji}</span>
+    `).join('');
+  }
+
+  // ---------- Form rendering ----------
+  function colorField(label, key) {
+    const v = style[key];
+    return `
+      <div>
+        <label class="block text-xs font-mono uppercase tracking-wider text-sand mb-2">${label}</label>
+        <div class="flex items-center gap-3">
+          <input type="color" data-key="${key}" value="${v}" class="h-10 w-14 rounded-lg border border-paper/20 bg-ink cursor-pointer" />
+          <input type="text" data-hex-for="${key}" value="${v}" maxlength="7"
+            class="flex-1 rounded-lg bg-ink border border-paper/20 px-4 py-2.5 text-paper font-mono text-sm focus:outline-none focus:ring-2 focus:ring-ember" />
+        </div>
+      </div>`;
+  }
+
+  function segmented(key, options) {
+    return `<div class="inline-flex rounded-lg border border-paper/20 overflow-hidden">
+      ${options.map(opt => `
+        <button type="button" data-seg-key="${key}" data-seg-value="${opt.value}"
+          class="px-4 py-2 text-sm transition-colors ${style[key] === opt.value ? 'bg-ember text-ink font-semibold' : 'text-sand hover:text-paper'}">
+          ${opt.label}
+        </button>`).join('')}
+    </div>`;
+  }
+
+  function uploadBlock(key, label) {
+    const url = style[key];
+    return `
+      <div>
+        <label class="block text-xs font-mono uppercase tracking-wider text-sand mb-2">${label}</label>
+        ${url ? `
+          <div class="flex items-center gap-3 mb-2">
+            <img src="${url}" class="h-14 w-14 rounded-lg object-cover border border-paper/20" />
+            <button type="button" data-action="remove-image" data-key="${key}" class="text-xs font-mono uppercase tracking-wider text-sand hover:text-ember transition-colors">Remove</button>
+          </div>` : ''}
+        <input type="file" accept="image/*" data-upload-for="${key}"
+          class="block w-full text-sm text-sand file:mr-3 file:rounded-lg file:border-0 file:bg-slate file:text-paper file:px-4 file:py-2 file:text-sm file:font-medium hover:file:brightness-110" />
+      </div>`;
+  }
+
+  function renderBackgroundSection() {
+    document.getElementById('bg-section').innerHTML = `
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-sm text-paper font-medium">Background</p>
+        ${segmented('bg_type', [{ value: 'color', label: 'Colour' }, { value: 'image', label: 'Image' }])}
+      </div>
+      ${style.bg_type === 'color' ? colorField('Colour', 'bg_color') : uploadBlock('bg_image_url', 'Background image')}
+    `;
+  }
+
+  function renderSliceSection() {
+    document.getElementById('slice-section').innerHTML = `
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-sm text-paper font-medium">Wheel slices</p>
+        ${segmented('slice_mode', [{ value: 'single', label: 'Single' }, { value: 'alternating', label: 'Alternating' }])}
+      </div>
+      <div class="grid sm:grid-cols-2 gap-4 mb-4">
+        ${colorField(style.slice_mode === 'alternating' ? 'Colour 1' : 'Colour', 'slice_color_1')}
+        ${style.slice_mode === 'alternating' ? colorField('Colour 2', 'slice_color_2') : ''}
+      </div>
+      ${colorField('Divider colour', 'divider_color')}
+    `;
+  }
+
+  function renderSpokeSection() {
+    const iconGrid = `
+      <div class="flex gap-2 mt-3">
+        ${ICONS.map(icon => `
+          <button type="button" data-icon-select="${icon}"
+            class="h-11 w-11 rounded-lg border flex items-center justify-center transition-colors ${style.spoke_icon === icon ? 'border-ember bg-ember/10' : 'border-paper/20 hover:border-paper/40'}">
+            <canvas data-icon-preview="${icon}" width="24" height="24"></canvas>
+          </button>`).join('')}
+      </div>`;
+
+    document.getElementById('spoke-section').innerHTML = `
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <p class="text-sm text-paper font-medium">Centre spoke</p>
+        ${segmented('spoke_type', [{ value: 'color', label: 'Colour' }, { value: 'icon', label: 'Icon' }, { value: 'image', label: 'Image' }])}
+      </div>
+      ${style.spoke_type === 'color' ? colorField('Colour', 'spoke_color') : ''}
+      ${style.spoke_type === 'icon' ? colorField('Icon colour', 'spoke_color') + iconGrid : ''}
+      ${style.spoke_type === 'image' ? uploadBlock('spoke_image_url', 'Spoke image') : ''}
+    `;
+
+    if (style.spoke_type === 'icon') {
+      ICONS.forEach(icon => {
+        const c = document.querySelector(`[data-icon-preview="${icon}"]`);
+        if (c) drawIcon(c.getContext('2d'), icon, 12, 12, 10, style.spoke_color);
+      });
+    }
+  }
+
+  function renderFontSection() {
+    document.getElementById('font-section').innerHTML = `
+      <p class="text-sm text-paper font-medium mb-4">Text colour</p>
+      <div class="grid sm:grid-cols-2 gap-4">
+        ${colorField(style.slice_mode === 'alternating' ? 'On colour 1' : 'Text colour', 'font_color_1')}
+        ${style.slice_mode === 'alternating' ? colorField('On colour 2', 'font_color_2') : ''}
+      </div>
+    `;
+  }
+
+  function renderAnimationSection() {
+    document.getElementById('animation-section').innerHTML = `
+      <p class="text-sm text-paper font-medium mb-4">Ambient animation</p>
+      <div class="grid grid-cols-4 gap-2">
+        ${ANIMATIONS.map(a => `
+          <button type="button" data-anim-select="${a.value}"
+            class="rounded-lg border py-3 text-xs font-mono uppercase tracking-wider transition-colors ${style.animation === a.value ? 'border-ember bg-ember/10 text-paper' : 'border-paper/20 text-sand hover:border-paper/40'}">
+            ${a.label}
+          </button>`).join('')}
+      </div>
+      <p class="text-sand/60 text-xs mt-3">Drifts gently here as a preview. Reacting to the actual spin happens in Play.</p>
+    `;
+  }
+
+  function renderPresets() {
+    document.getElementById('presets-row').innerHTML = Object.keys(PRESETS).map(key => `
+      <button type="button" data-preset="${key}"
+        class="rounded-lg border px-4 py-2 text-sm transition-colors ${style.preset === key ? 'border-ember bg-ember/10 text-paper' : 'border-paper/20 text-sand hover:border-paper/40'}">
+        ${PRESET_LABELS[key]}
+      </button>
+      ${style.preset === 'custom' && key === 'coniq' ? '' : ''}
+    `).join('') + `
+      <button type="button" data-preset="custom"
+        class="rounded-lg border px-4 py-2 text-sm transition-colors ${style.preset === 'custom' ? 'border-ember bg-ember/10 text-paper' : 'border-paper/20 text-sand hover:border-paper/40'}">
+        Custom
+      </button>`;
+  }
+
+  function renderAll() {
+    document.getElementById('style-form').innerHTML = `
+      <div id="bg-section" class="rounded-2xl bg-slate border border-paper/10 p-6"></div>
+      <div id="slice-section" class="rounded-2xl bg-slate border border-paper/10 p-6"></div>
+      <div id="spoke-section" class="rounded-2xl bg-slate border border-paper/10 p-6"></div>
+      <div id="font-section" class="rounded-2xl bg-slate border border-paper/10 p-6"></div>
+      <div id="animation-section" class="rounded-2xl bg-slate border border-paper/10 p-6"></div>
+    `;
+    renderBackgroundSection();
+    renderSliceSection();
+    renderSpokeSection();
+    renderFontSection();
+    renderAnimationSection();
+    renderPresets();
+    drawPreview();
+    renderParticles();
+  }
+
+  function setCustom() {
+    if (style.preset !== 'custom') {
+      style.preset = 'custom';
+      renderPresets();
+    }
+  }
+
+  // ---------- Events ----------
+  document.getElementById('presets-row').addEventListener('click', (e) => {
+    const key = e.target.closest('[data-preset]')?.dataset.preset;
+    if (!key) return;
+    if (key === 'custom') { style.preset = 'custom'; renderPresets(); return; }
+    style = { preset: key, ...PRESETS[key] };
+    renderAll();
+  });
+
+  document.getElementById('style-form').addEventListener('click', (e) => {
+    const seg = e.target.closest('[data-seg-key]');
+    if (seg) {
+      style[seg.dataset.segKey] = seg.dataset.segValue;
+      setCustom();
+      if (seg.dataset.segKey === 'bg_type') renderBackgroundSection();
+      if (seg.dataset.segKey === 'slice_mode') { renderSliceSection(); renderFontSection(); }
+      if (seg.dataset.segKey === 'spoke_type') renderSpokeSection();
+      drawPreview();
+      return;
+    }
+
+    const iconBtn = e.target.closest('[data-icon-select]');
+    if (iconBtn) {
+      style.spoke_icon = iconBtn.dataset.iconSelect;
+      setCustom();
+      renderSpokeSection();
+      drawPreview();
+      return;
+    }
+
+    const animBtn = e.target.closest('[data-anim-select]');
+    if (animBtn) {
+      style.animation = animBtn.dataset.animSelect;
+      setCustom();
+      renderAnimationSection();
+      renderParticles();
+      return;
+    }
+
+    const removeBtn = e.target.closest('[data-action="remove-image"]');
+    if (removeBtn) {
+      const key = removeBtn.dataset.key;
+      style[key] = null;
+      if (key === 'bg_image_url') { style.bg_type = 'color'; renderBackgroundSection(); }
+      if (key === 'spoke_image_url') { style.spoke_type = 'color'; renderSpokeSection(); }
+      setCustom();
+      drawPreview();
+    }
+  });
+
+  document.getElementById('style-form').addEventListener('input', (e) => {
+    if (e.target.dataset.key) {
+      style[e.target.dataset.key] = e.target.value;
+      const twin = document.querySelector(`[data-hex-for="${e.target.dataset.key}"]`);
+      if (twin) twin.value = e.target.value;
+      setCustom();
+      drawPreview();
+    }
+    if (e.target.dataset.hexFor) {
+      const v = e.target.value.trim();
+      if (isHex(v)) {
+        const key = e.target.dataset.hexFor;
+        style[key] = v;
+        const twin = document.querySelector(`[data-key="${key}"]`);
+        if (twin) twin.value = v;
+        setCustom();
+        drawPreview();
+      }
+    }
+  });
+
+  document.getElementById('style-form').addEventListener('change', async (e) => {
+    if (!e.target.dataset.uploadFor) return;
+    const key = e.target.dataset.uploadFor;
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return alert('Please choose an image file.');
+    if (file.size > 5 * 1024 * 1024) return alert('Image must be under 5MB.');
+
+    const ext = file.name.split('.').pop();
+    const path = `${experience.id}/${key}-${Date.now()}.${ext}`;
+
+    const { error: upErr } = await supabase.storage.from('wheel-assets').upload(path, file, { upsert: true });
+    if (upErr) { alert('Upload failed: ' + upErr.message); return; }
+
+    const { data } = supabase.storage.from('wheel-assets').getPublicUrl(path);
+    style[key] = data.publicUrl;
+    setCustom();
+    if (key === 'bg_image_url') renderBackgroundSection();
+    if (key === 'spoke_image_url') renderSpokeSection();
+    drawPreview();
+  });
+
+  document.getElementById('save-btn').addEventListener('click', async () => {
+    document.getElementById('validation-error').classList.add('hidden');
+    document.getElementById('save-success').classList.add('hidden');
+
+    const saveBtn = document.getElementById('save-btn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
+
+    const { error } = await supabase
+      .from('experiences')
+      .update({ style_config: style })
+      .eq('id', experience.id);
+
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save style';
+
+    if (error) {
+      const el = document.getElementById('validation-error');
+      el.textContent = error.message || 'Something went wrong saving.';
+      el.classList.remove('hidden');
+      return;
+    }
+    document.getElementById('save-success').classList.remove('hidden');
+  });
+
+  // ---------- Init ----------
+  async function init() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { window.location.href = './index.html'; return; }
+
+    const { data: exp, error } = await supabase
+      .from('experiences')
+      .select('*')
+      .eq('host_id', user.id)
+      .single();
+
+    if (error || !exp) { window.location.href = './host.html'; return; }
+    experience = exp;
+
+    if (exp.style_config) {
+      style = { preset: 'custom', ...PRESETS.coniq, ...exp.style_config };
+    }
+
+    renderAll();
+    document.getElementById('app').classList.remove('hidden');
+  }
+
+  init();
+</script>
+</body>
+</html>
