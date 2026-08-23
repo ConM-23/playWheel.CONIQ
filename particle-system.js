@@ -2,8 +2,9 @@
 //
 // DOM-based floating particle system. No canvas, no WebGL, no external
 // libraries. Built-in categories are pure CSS (gradients, box-shadow,
-// clip-path, pseudo-elements) — no external images. Custom PNGs are
-// supported as an additional category.
+// clip-path, pseudo-elements) — no external images, except the soccer
+// ball, which uses the real ⚽ emoji (see note on that category below).
+// Custom PNGs are supported as an additional category.
 //
 // USAGE
 //   import { FloatingParticleSystem } from './particle-system.js';
@@ -54,24 +55,6 @@ const CSS_TEXT = `
   animation: fps-roll 3.5s linear infinite;
 }
 @keyframes fps-roll { from { background-position: 0 0, 0 0; } to { background-position: 42px 0, 0 0; } }
-
-/* ---------- Soccer ball ---------- */
-.fps-soccer {
-  width:100%; height:100%; border-radius:50%; position:relative; overflow:hidden;
-  background: #e9e9e9;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.35);
-}
-.fps-soccer-pattern { position:absolute; inset:0; }
-.fps-soccer-patch {
-  position:absolute; background:#1a1a1a;
-  clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
-}
-.fps-soccer-shading {
-  position:absolute; inset:0; border-radius:50%; pointer-events:none;
-  background: radial-gradient(circle at 32% 28%,
-    rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.2) 32%,
-    rgba(0,0,0,0) 52%, rgba(0,0,0,0.32) 82%, rgba(0,0,0,0.5) 100%);
-}
 
 /* ---------- Autumn leaves ---------- */
 .fps-leaf { width:100%; height:100%; position:relative; box-shadow: 1px 2px 3px rgba(0,0,0,0.3); }
@@ -168,18 +151,6 @@ function leafVeins() {
     <span class="fps-leaf-vein" style="left:28%; top:46%; width:20%; height:3%; transform-origin:right center; transform:rotate(-32deg);"></span>
   `;
 }
-function soccerPatches() {
-  return `
-    <span class="fps-soccer-patch" style="width:32%;height:30%;top:34%;left:34%;"></span>
-    <span class="fps-soccer-patch" style="width:27%;height:25%;top:0%;left:37%;"></span>
-    <span class="fps-soccer-patch" style="width:26%;height:24%;top:15%;left:65%;transform:rotate(70deg);"></span>
-    <span class="fps-soccer-patch" style="width:26%;height:24%;top:54%;left:60%;transform:rotate(145deg);"></span>
-    <span class="fps-soccer-patch" style="width:26%;height:24%;top:54%;left:14%;transform:rotate(-145deg);"></span>
-    <span class="fps-soccer-patch" style="width:26%;height:24%;top:15%;left:9%;transform:rotate(-70deg);"></span>
-    <span class="fps-soccer-patch" style="width:14%;height:13%;top:2%;left:2%;opacity:0.55;"></span>
-    <span class="fps-soccer-patch" style="width:14%;height:13%;top:84%;left:84%;opacity:0.55;"></span>
-  `;
-}
 
 // ---------- Category registry ----------
 // Add a category by adding a key here with a `variants` array. Each
@@ -191,15 +162,18 @@ export const CATEGORY_DEFS = {
   soccer:  {
     label: 'Soccer Balls',
     variants: [{
-      build(el) {
-        el.className = 'fps-soccer';
-        el.innerHTML = `<div class="fps-soccer-pattern">${soccerPatches()}</div><div class="fps-soccer-shading"></div>`;
-        // Shading counter-rotates to stay fixed (like a real light source)
-        // while the pattern spins with the particle — that split is what
-        // sells the "rolling sphere" look instead of a flat spinning sticker.
-        // rollFactor ties rotation speed to actual movement speed, like a
-        // ball rolling rather than spinning arbitrarily.
-        return { counterRotate: el.querySelector('.fps-soccer-shading'), rollFactor: 7 };
+      // Falling back to the real emoji here — it's a flat, pre-drawn
+      // illustration with the pattern baked in, so it always looks
+      // correct with zero risk of the shading/contrast issues a custom
+      // CSS sphere can run into. rollFactor still applies: it spins
+      // faster the faster the particle is actually moving.
+      build(el, r) {
+        el.style.fontSize = (r * 1.7) + 'px';
+        el.style.lineHeight = (r * 2) + 'px';
+        el.style.textAlign = 'center';
+        el.style.filter = 'drop-shadow(0 2px 3px rgba(0,0,0,0.3))';
+        el.textContent = '⚽';
+        return { rollFactor: 7 };
       },
     }],
   },
@@ -367,7 +341,7 @@ export class FloatingParticleSystem {
     } else {
       const def = CATEGORY_DEFS[this.category];
       const variant = def.variants[Math.floor(Math.random() * def.variants.length)];
-      buildResult = variant.build(inner) || null;
+      buildResult = variant.build(inner, r) || null;
     }
 
     this.container.appendChild(wrapper);
@@ -471,14 +445,19 @@ export class FloatingParticleSystem {
 //      snowflake: { label: 'Snowflakes', variants: [{ build(el) { el.className = 'fps-snowflake'; } }] }
 // 3. It now appears wherever you list Object.keys(CATEGORY_DEFS) in your UI.
 //
+// build(el, r) — el is the wrapper to mutate, r is the particle's radius
+// in px, useful if a category needs pixel-based sizing (e.g. font-size for
+// an emoji glyph — see the soccer ball category). Most categories can
+// ignore r and just use 100%/100% CSS sizing.
+//
 // build(el) can optionally return { counterRotate, rollFactor }:
 //   counterRotate  a child element that should stay visually fixed while
 //                  the rest of the particle rotates — e.g. a lighting
 //                  overlay that shouldn't spin with a rolling pattern
-//                  underneath it (see the soccer ball category).
+//                  underneath it.
 //   rollFactor     makes rotation speed track actual movement speed
 //                  instead of an independent spin (true "rolling" rather
-//                  than arbitrary tumbling) — also used by the soccer ball.
+//                  than arbitrary tumbling) — used by the soccer ball.
 //
 // ADDING A NEW EMOJI-STYLE VARIANT (within emoji3d)
 // -----------------------------------
