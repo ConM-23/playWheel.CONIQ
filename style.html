@@ -125,7 +125,7 @@
   const WHEEL_BOUNDS = { cx: 160, cy: 160, r: 104 };
   const particleSystem = new FloatingParticleSystem(
     document.getElementById('preview-particles'),
-    { count: 10, radius: 15, wheel: WHEEL_BOUNDS }
+    { count: 10, minRadius: 12, maxRadius: 26, wheel: WHEEL_BOUNDS }
   );
 
   function syncParticles() {
