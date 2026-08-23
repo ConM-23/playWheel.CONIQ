@@ -29,13 +29,6 @@
     },
   }
 </script>
-<style>
-  @keyframes drift {
-    0% { transform: translateY(-14px) translateX(0); opacity: 0; }
-    12% { opacity: 1; }
-    100% { transform: translateY(260px) translateX(12px); opacity: 0; }
-  }
-</style>
 </head>
 <body class="bg-ink font-body text-paper antialiased min-h-screen">
 
@@ -46,15 +39,18 @@
     <p class="font-mono text-xs uppercase tracking-[0.2em] text-sand mt-6 mb-2">02 — Style</p>
     <h1 class="font-display text-[40px] font-bold tracking-tight mb-8">Choose a look</h1>
 
-    <!-- Live preview -->
-    <div class="flex justify-center mb-8">
-      <div class="relative" style="width:240px;height:240px;">
-        <canvas id="wheel-preview" width="240" height="240" class="rounded-full"></canvas>
-        <div id="preview-particles" class="absolute inset-0 pointer-events-none overflow-hidden rounded-full"></div>
+    <div class="flex flex-col items-center mb-8">
+      <div class="relative rounded-2xl overflow-hidden border border-paper/10" style="width:320px;height:320px;">
+        <div id="preview-bg" class="absolute inset-0"></div>
+        <canvas id="wheel-preview" width="200" height="200" class="rounded-full absolute" style="left:60px;top:60px;"></canvas>
+        <div id="preview-particles" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
       </div>
+      <button type="button" id="test-spin-btn"
+        class="mt-3 text-xs font-mono uppercase tracking-wider text-sand hover:text-ember transition-colors">
+        🌀 Test spin push
+      </button>
     </div>
 
-    <!-- Presets -->
     <div class="mb-6">
       <p class="font-mono text-xs uppercase tracking-wider text-sand mb-3">Presets</p>
       <div id="presets-row" class="flex flex-wrap gap-2"></div>
@@ -74,6 +70,7 @@
 
 <script type="module">
   import { supabase } from './supabase-client.js';
+  import { FloatingParticleSystem, CATEGORY_DEFS } from './particle-system.js';
 
   let experience = null;
 
@@ -84,7 +81,7 @@
       divider_color: '#F6F3EC',
       spoke_type: 'icon', spoke_color: '#D9491A', spoke_image_url: null, spoke_icon: 'ring',
       font_color_1: '#F6F3EC', font_color_2: '#121214',
-      animation: 'none',
+      animation: 'none', custom_animation_urls: [],
     },
     midnight: {
       bg_type: 'color', bg_color: '#0B1120', bg_image_url: null,
@@ -92,7 +89,7 @@
       divider_color: '#94A3B8',
       spoke_type: 'color', spoke_color: '#38BDF8', spoke_image_url: null, spoke_icon: 'ring',
       font_color_1: '#F1F5F9', font_color_2: '#F1F5F9',
-      animation: 'sparkle',
+      animation: 'planets', custom_animation_urls: [],
     },
     sunset: {
       bg_type: 'color', bg_color: '#2B1207', bg_image_url: null,
@@ -100,7 +97,7 @@
       divider_color: '#FFF7ED',
       spoke_type: 'color', spoke_color: '#FDE68A', spoke_image_url: null, spoke_icon: 'star',
       font_color_1: '#FFF7ED', font_color_2: '#2B1207',
-      animation: 'none',
+      animation: 'none', custom_animation_urls: [],
     },
     emerald: {
       bg_type: 'color', bg_color: '#0B1F17', bg_image_url: null,
@@ -108,7 +105,7 @@
       divider_color: '#D1FAE5',
       spoke_type: 'color', spoke_color: '#34D399', spoke_image_url: null, spoke_icon: 'diamond',
       font_color_1: '#ECFDF5', font_color_2: '#052E1B',
-      animation: 'leaves',
+      animation: 'leaves', custom_animation_urls: [],
     },
   };
 
@@ -116,17 +113,46 @@
 
   const PRESET_LABELS = { coniq: 'CONIQ', midnight: 'Midnight', sunset: 'Sunset', emerald: 'Emerald' };
   const ICONS = ['ring', 'dot', 'diamond', 'star'];
-  const ANIMATIONS = [
+  const ANIMATION_OPTIONS = [
     { value: 'none', label: 'None' },
-    { value: 'ice', label: 'Ice' },
-    { value: 'leaves', label: 'Leaves' },
-    { value: 'sparkle', label: 'Sparkle' },
+    ...Object.entries(CATEGORY_DEFS).map(([value, c]) => ({ value, label: c.label })),
+    { value: 'custom', label: 'Custom Upload' },
   ];
-  const PARTICLE_EMOJI = { ice: '❄️', leaves: '🍃', sparkle: '✨' };
 
   function isHex(v) { return /^#[0-9a-fA-F]{6}$/.test(v); }
 
-  // ---------- Canvas preview ----------
+  // ---------- Particle system ----------
+  const WHEEL_BOUNDS = { cx: 160, cy: 160, r: 104 };
+  const particleSystem = new FloatingParticleSystem(
+    document.getElementById('preview-particles'),
+    { count: 10, radius: 15, wheel: WHEEL_BOUNDS }
+  );
+
+  function syncParticles() {
+    if (style.animation === 'custom') {
+      particleSystem.setUploadedIcons(style.custom_animation_urls || []);
+    } else {
+      particleSystem.setCategory(style.animation);
+    }
+  }
+
+  document.getElementById('test-spin-btn').addEventListener('click', () => {
+    particleSystem.applySpinForce(6);
+  });
+
+  function applyStageBackground() {
+    const bgEl = document.getElementById('preview-bg');
+    if (style.bg_type === 'image' && style.bg_image_url) {
+      bgEl.style.backgroundImage = `url("${style.bg_image_url}")`;
+      bgEl.style.backgroundSize = 'cover';
+      bgEl.style.backgroundPosition = 'center';
+      bgEl.style.backgroundColor = '';
+    } else {
+      bgEl.style.backgroundImage = '';
+      bgEl.style.backgroundColor = style.bg_color;
+    }
+  }
+
   const imageCache = {};
   function loadImage(url) {
     return new Promise((resolve) => {
@@ -175,15 +201,6 @@
     const cx = size / 2, cy = size / 2, r = size / 2 - 6;
 
     ctx.clearRect(0, 0, size, size);
-
-    if (style.bg_type === 'image' && style.bg_image_url) {
-      const img = await loadImage(style.bg_image_url);
-      if (img) ctx.drawImage(img, 0, 0, size, size);
-      else { ctx.fillStyle = style.bg_color; ctx.fillRect(0, 0, size, size); }
-    } else {
-      ctx.fillStyle = style.bg_color;
-      ctx.fillRect(0, 0, size, size);
-    }
 
     const sliceCount = 8;
     const angleStep = (2 * Math.PI) / sliceCount;
@@ -237,16 +254,11 @@
     ctx.stroke();
   }
 
-  function renderParticles() {
-    const el = document.getElementById('preview-particles');
-    if (style.animation === 'none') { el.innerHTML = ''; return; }
-    const emoji = PARTICLE_EMOJI[style.animation];
-    el.innerHTML = Array.from({ length: 6 }).map((_, i) => `
-      <span class="absolute text-sm" style="left:${8 + i * 15}%; top:-14px; animation: drift ${4 + (i % 3)}s linear ${i * 0.6}s infinite;">${emoji}</span>
-    `).join('');
+  function refreshPreview() {
+    applyStageBackground();
+    drawPreview();
   }
 
-  // ---------- Form rendering ----------
   function colorField(label, key) {
     const v = style[key];
     return `
@@ -282,6 +294,7 @@
           </div>` : ''}
         <input type="file" accept="image/*" data-upload-for="${key}"
           class="block w-full text-sm text-sand file:mr-3 file:rounded-lg file:border-0 file:bg-slate file:text-paper file:px-4 file:py-2 file:text-sm file:font-medium hover:file:brightness-110" />
+        ${key === 'bg_image_url' ? '<p class="text-sand/60 text-xs mt-2">Fills the full screen — cropped to cover, never stretched or tiled.</p>' : ''}
       </div>`;
   }
 
@@ -347,17 +360,39 @@
     `;
   }
 
+  function customUploadBlock() {
+    const urls = style.custom_animation_urls || [];
+    return `
+      <div class="mt-3 p-4 rounded-lg border border-paper/20">
+        ${urls.length ? `
+          <div class="flex flex-wrap gap-2 mb-3">
+            ${urls.map((u, i) => `
+              <div class="relative">
+                <img src="${u}" class="h-12 w-12 rounded-lg object-cover border border-paper/20" />
+                <button type="button" data-remove-custom="${i}"
+                  class="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-ember text-ink text-xs leading-5 text-center">×</button>
+              </div>`).join('')}
+          </div>` : ''}
+        ${urls.length < 8 ? `
+          <input type="file" accept="image/png" multiple data-custom-upload
+            class="block w-full text-sm text-sand file:mr-3 file:rounded-lg file:border-0 file:bg-slate file:text-paper file:px-4 file:py-2 file:text-sm file:font-medium hover:file:brightness-110" />
+          <p class="text-sand/60 text-xs mt-2">PNG only, up to ${8 - urls.length} more. With several uploaded, each floating icon randomly picks one — so three images means roughly a third of the floaters each.</p>
+        ` : '<p class="text-sand/60 text-xs">Maximum of 8 reached.</p>'}
+      </div>`;
+  }
+
   function renderAnimationSection() {
     document.getElementById('animation-section').innerHTML = `
       <p class="text-sm text-paper font-medium mb-4">Ambient animation</p>
-      <div class="grid grid-cols-4 gap-2">
-        ${ANIMATIONS.map(a => `
+      <div class="grid grid-cols-3 gap-2">
+        ${ANIMATION_OPTIONS.map(a => `
           <button type="button" data-anim-select="${a.value}"
             class="rounded-lg border py-3 text-xs font-mono uppercase tracking-wider transition-colors ${style.animation === a.value ? 'border-ember bg-ember/10 text-paper' : 'border-paper/20 text-sand hover:border-paper/40'}">
             ${a.label}
           </button>`).join('')}
       </div>
-      <p class="text-sand/60 text-xs mt-3">Drifts gently here as a preview. Reacting to the actual spin happens in Play.</p>
+      ${style.animation === 'custom' ? customUploadBlock() : ''}
+      <p class="text-sand/60 text-xs mt-3">Real physics — floaters bounce off each other and off the wheel, never crossing over it. Tap "Test spin push" above to feel how they'll react when the wheel actually spins in Play.</p>
     `;
   }
 
@@ -366,9 +401,7 @@
       <button type="button" data-preset="${key}"
         class="rounded-lg border px-4 py-2 text-sm transition-colors ${style.preset === key ? 'border-ember bg-ember/10 text-paper' : 'border-paper/20 text-sand hover:border-paper/40'}">
         ${PRESET_LABELS[key]}
-      </button>
-      ${style.preset === 'custom' && key === 'coniq' ? '' : ''}
-    `).join('') + `
+      </button>`).join('') + `
       <button type="button" data-preset="custom"
         class="rounded-lg border px-4 py-2 text-sm transition-colors ${style.preset === 'custom' ? 'border-ember bg-ember/10 text-paper' : 'border-paper/20 text-sand hover:border-paper/40'}">
         Custom
@@ -389,8 +422,9 @@
     renderFontSection();
     renderAnimationSection();
     renderPresets();
-    drawPreview();
-    renderParticles();
+    refreshPreview();
+    syncParticles();
+    particleSystem.start();
   }
 
   function setCustom() {
@@ -400,7 +434,6 @@
     }
   }
 
-  // ---------- Events ----------
   document.getElementById('presets-row').addEventListener('click', (e) => {
     const key = e.target.closest('[data-preset]')?.dataset.preset;
     if (!key) return;
@@ -414,10 +447,9 @@
     if (seg) {
       style[seg.dataset.segKey] = seg.dataset.segValue;
       setCustom();
-      if (seg.dataset.segKey === 'bg_type') renderBackgroundSection();
-      if (seg.dataset.segKey === 'slice_mode') { renderSliceSection(); renderFontSection(); }
-      if (seg.dataset.segKey === 'spoke_type') renderSpokeSection();
-      drawPreview();
+      if (seg.dataset.segKey === 'bg_type') { renderBackgroundSection(); refreshPreview(); }
+      if (seg.dataset.segKey === 'slice_mode') { renderSliceSection(); renderFontSection(); drawPreview(); }
+      if (seg.dataset.segKey === 'spoke_type') { renderSpokeSection(); drawPreview(); }
       return;
     }
 
@@ -435,7 +467,7 @@
       style.animation = animBtn.dataset.animSelect;
       setCustom();
       renderAnimationSection();
-      renderParticles();
+      syncParticles();
       return;
     }
 
@@ -443,10 +475,19 @@
     if (removeBtn) {
       const key = removeBtn.dataset.key;
       style[key] = null;
-      if (key === 'bg_image_url') { style.bg_type = 'color'; renderBackgroundSection(); }
-      if (key === 'spoke_image_url') { style.spoke_type = 'color'; renderSpokeSection(); }
+      if (key === 'bg_image_url') { style.bg_type = 'color'; renderBackgroundSection(); refreshPreview(); }
+      if (key === 'spoke_image_url') { style.spoke_type = 'color'; renderSpokeSection(); drawPreview(); }
       setCustom();
-      drawPreview();
+      return;
+    }
+
+    const removeCustom = e.target.closest('[data-remove-custom]');
+    if (removeCustom) {
+      const idx = parseInt(removeCustom.dataset.removeCustom, 10);
+      style.custom_animation_urls = (style.custom_animation_urls || []).filter((_, i) => i !== idx);
+      setCustom();
+      renderAnimationSection();
+      syncParticles();
     }
   });
 
@@ -456,7 +497,7 @@
       const twin = document.querySelector(`[data-hex-for="${e.target.dataset.key}"]`);
       if (twin) twin.value = e.target.value;
       setCustom();
-      drawPreview();
+      refreshPreview();
     }
     if (e.target.dataset.hexFor) {
       const v = e.target.value.trim();
@@ -466,12 +507,32 @@
         const twin = document.querySelector(`[data-key="${key}"]`);
         if (twin) twin.value = v;
         setCustom();
-        drawPreview();
+        refreshPreview();
       }
     }
   });
 
   document.getElementById('style-form').addEventListener('change', async (e) => {
+    if (e.target.dataset.customUpload !== undefined) {
+      const files = Array.from(e.target.files || []);
+      const current = style.custom_animation_urls || [];
+      const remaining = 8 - current.length;
+      for (const file of files.slice(0, remaining)) {
+        if (file.type !== 'image/png') { alert(`${file.name} isn't a PNG — skipped.`); continue; }
+        if (file.size > 2 * 1024 * 1024) { alert(`${file.name} is over 2MB — skipped.`); continue; }
+        const path = `${experience.id}/particles/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.png`;
+        const { error } = await supabase.storage.from('wheel-assets').upload(path, file);
+        if (error) { alert('Upload failed: ' + error.message); continue; }
+        const { data } = supabase.storage.from('wheel-assets').getPublicUrl(path);
+        current.push(data.publicUrl);
+      }
+      style.custom_animation_urls = current;
+      setCustom();
+      renderAnimationSection();
+      syncParticles();
+      return;
+    }
+
     if (!e.target.dataset.uploadFor) return;
     const key = e.target.dataset.uploadFor;
     const file = e.target.files[0];
@@ -488,9 +549,8 @@
     const { data } = supabase.storage.from('wheel-assets').getPublicUrl(path);
     style[key] = data.publicUrl;
     setCustom();
-    if (key === 'bg_image_url') renderBackgroundSection();
-    if (key === 'spoke_image_url') renderSpokeSection();
-    drawPreview();
+    if (key === 'bg_image_url') { renderBackgroundSection(); refreshPreview(); }
+    if (key === 'spoke_image_url') { renderSpokeSection(); drawPreview(); }
   });
 
   document.getElementById('save-btn').addEventListener('click', async () => {
@@ -518,7 +578,6 @@
     document.getElementById('save-success').classList.remove('hidden');
   });
 
-  // ---------- Init ----------
   async function init() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { window.location.href = './index.html'; return; }

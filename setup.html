@@ -48,6 +48,14 @@
       </div>
 
       <div>
+        <label class="block text-xs font-mono uppercase tracking-wider text-sand mb-2">Subtitle</label>
+        <input id="exp-subtitle" type="text"
+          class="w-full rounded-lg bg-ink border border-paper/20 px-4 py-3 text-paper focus:outline-none focus:ring-2 focus:ring-ember"
+          placeholder="e.g. Discover your functional coffee moment" />
+        <p class="text-sand/60 text-xs mt-2">Optional second line shown under the title.</p>
+      </div>
+
+      <div>
         <label class="block text-xs font-mono uppercase tracking-wider text-sand mb-2">Registration link</label>
         <div class="flex items-center rounded-lg bg-ink border border-paper/20 overflow-hidden focus-within:ring-2 focus-within:ring-ember">
           <span class="px-4 text-sand/60 text-sm font-mono">/r/</span>
@@ -271,9 +279,11 @@
     saveBtn.textContent = 'Saving…';
 
     try {
+      const subtitle = document.getElementById('exp-subtitle').value.trim();
+
       const { error: expError } = await supabase
         .from('experiences')
-        .update({ title, slug, spins_awarded: spins, registration_enabled: registrationEnabled })
+        .update({ title, subtitle, slug, spins_awarded: spins, registration_enabled: registrationEnabled })
         .eq('id', experience.id);
 
       if (expError) {
@@ -310,6 +320,7 @@
       }
 
       experience.title = title;
+      experience.subtitle = subtitle;
       experience.slug = slug;
       experience.spins_awarded = spins;
       experience.registration_enabled = registrationEnabled;
@@ -356,6 +367,7 @@
     wheels = (wh && wh.length) ? wh.map(w => ({ ...w, _key: w.id })) : [makeDefaultWheel(0)];
 
     document.getElementById('exp-title').value = experience.title || '';
+    document.getElementById('exp-subtitle').value = experience.subtitle || '';
     document.getElementById('exp-slug').value = experience.slug || '';
     document.getElementById('exp-spins').value = experience.spins_awarded || 1;
     setToggleUI(regToggle, experience.registration_enabled !== false);
