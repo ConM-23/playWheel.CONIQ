@@ -31,6 +31,19 @@ const CSS_TEXT = `
 .fps-particle { position:absolute; top:0; left:0; will-change:transform; }
 .fps-particle-inner { width:100%; height:100%; position:relative; }
 
+/* ---------- Ice block ---------- */
+.fps-ice {
+  width:100%; height:100%; border-radius:18%;
+  background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(191,229,255,0.6) 45%, rgba(110,170,215,0.5) 100%);
+  box-shadow: inset 0 0 6px rgba(255,255,255,0.7), inset -4px -4px 6px rgba(70,130,180,0.35), 0 2px 4px rgba(0,0,0,0.18);
+  border: 1px solid rgba(255,255,255,0.55);
+  position:relative;
+}
+.fps-ice::before {
+  content:''; position:absolute; top:18%; left:20%; width:28%; height:28%; border-radius:50%;
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.15) 70%, transparent 100%);
+}
+
 /* ---------- Golf ball ---------- */
 .fps-golf {
   width:100%; height:100%; border-radius:50%;
@@ -45,21 +58,21 @@ const CSS_TEXT = `
 /* ---------- Soccer ball ---------- */
 .fps-soccer {
   width:100%; height:100%; border-radius:50%; position:relative; overflow:hidden;
-  background: radial-gradient(circle at 35% 30%, #ffffff 0%, #f0f0f0 40%, #cfcfcf 100%);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.35);
+  background: radial-gradient(circle at 32% 28%, #ffffff 0%, #f2f2f2 35%, #d8d8d8 68%, #b0b0b0 100%);
+  box-shadow: inset -5px -5px 9px rgba(0,0,0,0.28), inset 3px 3px 5px rgba(255,255,255,0.55), 0 2px 4px rgba(0,0,0,0.35);
 }
-.fps-soccer::before, .fps-soccer::after {
-  content:''; position:absolute; width:36%; height:36%; background:#1a1a1a;
+.fps-soccer-patch {
+  position:absolute; background:#1a1a1a;
   clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+  box-shadow: inset 0 0 2px rgba(255,255,255,0.12);
 }
-.fps-soccer::before { top:10%; left:30%; transform:rotate(8deg); }
-.fps-soccer::after  { bottom:8%; left:6%; transform:rotate(-18deg) scale(0.8); }
 
 /* ---------- Autumn leaves ---------- */
-.fps-leaf { width:100%; height:100%; box-shadow: 1px 2px 3px rgba(0,0,0,0.25); }
+.fps-leaf { width:100%; height:100%; position:relative; box-shadow: 1px 2px 3px rgba(0,0,0,0.3); }
 .fps-leaf-maple { clip-path: polygon(50% 0%, 61% 20%, 80% 15%, 72% 35%, 95% 40%, 76% 52%, 88% 72%, 65% 66%, 60% 90%, 50% 72%, 40% 90%, 35% 66%, 12% 72%, 24% 52%, 5% 40%, 28% 35%, 20% 15%, 39% 20%); }
-.fps-leaf-oak   { border-radius: 40% 60% 40% 60% / 60% 40% 60% 40%; }
-.fps-leaf-birch { border-radius: 0% 100% 0% 100%; }
+.fps-leaf-oak   { clip-path: polygon(50% 0%, 65% 8%, 60% 20%, 78% 22%, 68% 34%, 85% 38%, 72% 48%, 88% 54%, 70% 62%, 82% 72%, 62% 74%, 65% 92%, 50% 78%, 35% 92%, 38% 74%, 18% 72%, 30% 62%, 12% 54%, 28% 48%, 15% 38%, 32% 34%, 22% 22%, 40% 20%, 35% 8%); }
+.fps-leaf-birch { clip-path: polygon(50% 0%, 66% 10%, 76% 30%, 78% 55%, 68% 78%, 50% 100%, 32% 78%, 22% 55%, 24% 30%, 34% 10%); }
+.fps-leaf-vein { position:absolute; background: rgba(0,0,0,0.22); border-radius:2px; }
 
 /* ---------- Planets ---------- */
 .fps-planet { width:100%; height:100%; border-radius:50%; position:relative; }
@@ -113,20 +126,50 @@ function leafColor() {
   const palette = ['#EAB308', '#F59E0B', '#EA580C', '#C2410C', '#B91C1C'];
   return palette[Math.floor(Math.random() * palette.length)];
 }
+function shade(hex, percent) {
+  const num = parseInt(hex.slice(1), 16);
+  let r = Math.max(0, Math.min(255, (num >> 16) + percent));
+  let g = Math.max(0, Math.min(255, ((num >> 8) & 0x00ff) + percent));
+  let b = Math.max(0, Math.min(255, (num & 0x0000ff) + percent));
+  return '#' + (0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1);
+}
+function leafGradient(hex) {
+  return `linear-gradient(160deg, ${shade(hex, 55)} 0%, ${hex} 55%, ${shade(hex, -45)} 100%)`;
+}
+function leafVeins() {
+  return `
+    <span class="fps-leaf-vein" style="left:48%; top:4%; width:4%; height:88%; transform-origin:top center; transform:rotate(1deg);"></span>
+    <span class="fps-leaf-vein" style="left:50%; top:26%; width:22%; height:3%; transform-origin:left center; transform:rotate(35deg);"></span>
+    <span class="fps-leaf-vein" style="left:50%; top:46%; width:20%; height:3%; transform-origin:left center; transform:rotate(32deg);"></span>
+    <span class="fps-leaf-vein" style="left:28%; top:26%; width:22%; height:3%; transform-origin:right center; transform:rotate(-35deg);"></span>
+    <span class="fps-leaf-vein" style="left:28%; top:46%; width:20%; height:3%; transform-origin:right center; transform:rotate(-32deg);"></span>
+  `;
+}
+function soccerPatches() {
+  return `
+    <span class="fps-soccer-patch" style="width:30%;height:28%;top:36%;left:35%;transform:rotate(10deg);"></span>
+    <span class="fps-soccer-patch" style="width:24%;height:22%;top:6%;left:38%;transform:rotate(0deg) scale(0.85);opacity:0.95;"></span>
+    <span class="fps-soccer-patch" style="width:24%;height:22%;top:20%;left:68%;transform:rotate(70deg) scale(0.85);opacity:0.95;"></span>
+    <span class="fps-soccer-patch" style="width:24%;height:22%;top:56%;left:60%;transform:rotate(140deg) scale(0.85);opacity:0.9;"></span>
+    <span class="fps-soccer-patch" style="width:24%;height:22%;top:56%;left:12%;transform:rotate(-140deg) scale(0.85);opacity:0.9;"></span>
+    <span class="fps-soccer-patch" style="width:24%;height:22%;top:20%;left:6%;transform:rotate(-70deg) scale(0.85);opacity:0.95;"></span>
+  `;
+}
 
 // ---------- Category registry ----------
 // Add a category by adding a key here with a `variants` array. Each
 // variant's build(el) mutates the wrapper div into that shape. See the
 // guide at the bottom of this file for a worked example.
 export const CATEGORY_DEFS = {
+  ice:     { label: 'Ice Blocks',    variants: [{ build(el) { el.className = 'fps-ice'; } }] },
   golf:    { label: 'Golf Balls',    variants: [{ build(el) { el.className = 'fps-golf'; } }] },
-  soccer:  { label: 'Soccer Balls',  variants: [{ build(el) { el.className = 'fps-soccer'; } }] },
+  soccer:  { label: 'Soccer Balls',  variants: [{ build(el) { el.className = 'fps-soccer'; el.innerHTML = soccerPatches(); } }] },
   leaves:  {
     label: 'Autumn Leaves',
     variants: [
-      { build(el) { el.className = 'fps-leaf fps-leaf-maple'; el.style.background = leafColor(); } },
-      { build(el) { el.className = 'fps-leaf fps-leaf-oak';   el.style.background = leafColor(); } },
-      { build(el) { el.className = 'fps-leaf fps-leaf-birch'; el.style.background = leafColor(); } },
+      { build(el) { const c = leafColor(); el.className = 'fps-leaf fps-leaf-maple'; el.style.background = leafGradient(c); el.innerHTML = leafVeins(); } },
+      { build(el) { const c = leafColor(); el.className = 'fps-leaf fps-leaf-oak';   el.style.background = leafGradient(c); el.innerHTML = leafVeins(); } },
+      { build(el) { const c = leafColor(); el.className = 'fps-leaf fps-leaf-birch'; el.style.background = leafGradient(c); el.innerHTML = leafVeins(); } },
     ],
   },
   planets: {
@@ -296,26 +339,16 @@ export class FloatingParticleSystem {
       p.angularVelocity *= 0.995;
     });
 
+    // Edges: drift off-frame and wrap back in from a random point on the
+    // opposite side, rather than bouncing. The wheel is intentionally NOT
+    // a physical obstacle here — particles pass freely behind it; see the
+    // z-index occlusion trick in the render step below instead.
     this.particles.forEach(p => {
-      if (p.x < p.r) { p.x = p.r; p.vx *= -this.restitution; }
-      if (p.x > w - p.r) { p.x = w - p.r; p.vx *= -this.restitution; }
-      if (p.y < p.r) { p.y = p.r; p.vy *= -this.restitution; }
-      if (p.y > h - p.r) { p.y = h - p.r; p.vy *= -this.restitution; }
-    });
-
-    this.particles.forEach(p => {
-      const dx = p.x - cx, dy = p.y - cy;
-      const dist = Math.hypot(dx, dy);
-      const minDist = wheelR + p.r;
-      if (dist < minDist && dist > 0) {
-        const nx = dx / dist, ny = dy / dist;
-        p.x = cx + nx * minDist;
-        p.y = cy + ny * minDist;
-        const vn = p.vx * nx + p.vy * ny;
-        p.vx -= (1 + this.restitution) * vn * nx;
-        p.vy -= (1 + this.restitution) * vn * ny;
-        p.angularVelocity += (p.vx * -ny + p.vy * nx) * 0.05;
-      }
+      const margin = p.r * 2;
+      if (p.x < -margin) { p.x = w + margin; p.y = Math.random() * h; }
+      else if (p.x > w + margin) { p.x = -margin; p.y = Math.random() * h; }
+      if (p.y < -margin) { p.y = h + margin; p.x = Math.random() * w; }
+      else if (p.y > h + margin) { p.y = -margin; p.x = Math.random() * w; }
     });
 
     for (let i = 0; i < this.particles.length; i++) {
@@ -342,6 +375,10 @@ export class FloatingParticleSystem {
     this.particles.forEach(p => {
       const flutter = Math.sin(performance.now() / 500 + p.flutterPhase) * 4;
       p.el.style.transform = `translate(${p.x - p.r}px, ${p.y - p.r}px) rotate(${p.angle + flutter}deg)`;
+      // Visually pass behind the wheel without any physical collision:
+      // z-index flips based on distance from wheel centre each frame.
+      const distToWheel = Math.hypot(p.x - cx, p.y - cy);
+      p.el.style.zIndex = distToWheel < wheelR ? '-1' : '1';
     });
   }
 }
@@ -378,12 +415,24 @@ export class FloatingParticleSystem {
 // Constructor options (or set directly on the instance, takes effect next frame):
 //   friction      0–1, closer to 1 = less drag, particles coast longer (default 0.996)
 //   driftForce    ambient random jitter added every frame (default 0.01)
-//   restitution   collision bounciness, 1 = perfectly elastic, <1 = energy loss on impact (default 1)
+//   restitution   particle-particle collision bounciness, 1 = perfectly elastic (default 1)
 //   radius        particle size in px (default 15)
 //   count         particle count (default 10) — setCount(n) respawns immediately
-// For a calmer wheel: lower driftForce (e.g. 0.003) and raise friction
-// slightly won't help since 0.996 is already high — instead lower
-// restitution to ~0.85 so collisions settle down over time.
+//
+// Edges: particles are NOT walled in — once they drift past the edge by
+// more than 2×radius they wrap to a random point on the opposite side.
+// To make that feel slower/rarer, lower driftForce so particles wander
+// less; to make it feel busier, raise count or driftForce.
+//
+// The wheel: intentionally not a physics obstacle — particles pass freely
+// behind it. Occlusion is purely visual, done every frame in _step() by
+// comparing each particle's distance to this.wheel against this.wheel.r
+// and toggling z-index (-1 behind, 1 in front). If you ever want the old
+// "bounce off the wheel" behaviour back for a different context, that's a
+// position-correction + velocity-reflection block against a static circle
+// at { cx, cy, r: wheelR + p.r } — same shape as the wall-wrap block, just
+// with reflection instead of wrapping.
+//
 // For a punchier spin reaction: raise the strength argument passed to
-// applySpinForce(), or lower the r*3 falloff divisor in applySpinForce()
-// so the push reaches further from the wheel.
+// applySpinForce(), or lower the r*3 falloff divisor inside it so the
+// push reaches further from the wheel.
