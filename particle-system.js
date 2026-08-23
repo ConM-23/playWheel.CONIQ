@@ -58,13 +58,19 @@ const CSS_TEXT = `
 /* ---------- Soccer ball ---------- */
 .fps-soccer {
   width:100%; height:100%; border-radius:50%; position:relative; overflow:hidden;
-  background: radial-gradient(circle at 32% 28%, #ffffff 0%, #f2f2f2 35%, #d8d8d8 68%, #b0b0b0 100%);
-  box-shadow: inset -5px -5px 9px rgba(0,0,0,0.28), inset 3px 3px 5px rgba(255,255,255,0.55), 0 2px 4px rgba(0,0,0,0.35);
+  background: #e9e9e9;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.35);
 }
+.fps-soccer-pattern { position:absolute; inset:0; }
 .fps-soccer-patch {
   position:absolute; background:#1a1a1a;
   clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
-  box-shadow: inset 0 0 2px rgba(255,255,255,0.12);
+}
+.fps-soccer-shading {
+  position:absolute; inset:0; border-radius:50%; pointer-events:none;
+  background: radial-gradient(circle at 32% 28%,
+    rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.2) 32%,
+    rgba(0,0,0,0) 52%, rgba(0,0,0,0.32) 82%, rgba(0,0,0,0.5) 100%);
 }
 
 /* ---------- Autumn leaves ---------- */
@@ -90,8 +96,25 @@ const CSS_TEXT = `
 }
 
 /* ---------- Coffee beans ---------- */
-.fps-bean { width:100%; height:100%; border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%; position:relative; box-shadow: 1px 2px 3px rgba(0,0,0,0.3); }
-.fps-bean::before { content:''; position:absolute; top:10%; bottom:10%; left:46%; width:8%; background: rgba(0,0,0,0.35); border-radius:50%; }
+.fps-bean {
+  width:64%; height:96%; margin:2% 18%;
+  border-radius: 50% 50% 50% 50% / 58% 58% 42% 42%;
+  position:relative; box-shadow: 1px 2px 3px rgba(0,0,0,0.3);
+}
+.fps-bean-crease-straight {
+  position:absolute; top:8%; left:46%; width:8%; height:84%;
+  background: rgba(0,0,0,0.4); border-radius:50%;
+}
+.fps-bean-crease-curved-top {
+  position:absolute; top:6%; left:42%; width:10%; height:46%;
+  background: rgba(0,0,0,0.4); border-radius:50%;
+  transform: rotate(-10deg); transform-origin: bottom center;
+}
+.fps-bean-crease-curved-bottom {
+  position:absolute; top:48%; left:42%; width:10%; height:46%;
+  background: rgba(0,0,0,0.4); border-radius:50%;
+  transform: rotate(10deg); transform-origin: top center;
+}
 .fps-bean-light  { background: radial-gradient(circle at 35% 30%, #e0b587 0%, #c68b59 55%, #9c6a3d 100%); }
 .fps-bean-medium { background: radial-gradient(circle at 35% 30%, #a9744a 0%, #8b5a2b 55%, #5e3a1a 100%); }
 .fps-bean-dark   { background: radial-gradient(circle at 35% 30%, #5c4632 0%, #3e2418 55%, #221209 100%); }
@@ -147,12 +170,14 @@ function leafVeins() {
 }
 function soccerPatches() {
   return `
-    <span class="fps-soccer-patch" style="width:30%;height:28%;top:36%;left:35%;transform:rotate(10deg);"></span>
-    <span class="fps-soccer-patch" style="width:24%;height:22%;top:6%;left:38%;transform:rotate(0deg) scale(0.85);opacity:0.95;"></span>
-    <span class="fps-soccer-patch" style="width:24%;height:22%;top:20%;left:68%;transform:rotate(70deg) scale(0.85);opacity:0.95;"></span>
-    <span class="fps-soccer-patch" style="width:24%;height:22%;top:56%;left:60%;transform:rotate(140deg) scale(0.85);opacity:0.9;"></span>
-    <span class="fps-soccer-patch" style="width:24%;height:22%;top:56%;left:12%;transform:rotate(-140deg) scale(0.85);opacity:0.9;"></span>
-    <span class="fps-soccer-patch" style="width:24%;height:22%;top:20%;left:6%;transform:rotate(-70deg) scale(0.85);opacity:0.95;"></span>
+    <span class="fps-soccer-patch" style="width:32%;height:30%;top:34%;left:34%;"></span>
+    <span class="fps-soccer-patch" style="width:27%;height:25%;top:0%;left:37%;"></span>
+    <span class="fps-soccer-patch" style="width:26%;height:24%;top:15%;left:65%;transform:rotate(70deg);"></span>
+    <span class="fps-soccer-patch" style="width:26%;height:24%;top:54%;left:60%;transform:rotate(145deg);"></span>
+    <span class="fps-soccer-patch" style="width:26%;height:24%;top:54%;left:14%;transform:rotate(-145deg);"></span>
+    <span class="fps-soccer-patch" style="width:26%;height:24%;top:15%;left:9%;transform:rotate(-70deg);"></span>
+    <span class="fps-soccer-patch" style="width:14%;height:13%;top:2%;left:2%;opacity:0.55;"></span>
+    <span class="fps-soccer-patch" style="width:14%;height:13%;top:84%;left:84%;opacity:0.55;"></span>
   `;
 }
 
@@ -163,7 +188,21 @@ function soccerPatches() {
 export const CATEGORY_DEFS = {
   ice:     { label: 'Ice Blocks',    variants: [{ build(el) { el.className = 'fps-ice'; } }] },
   golf:    { label: 'Golf Balls',    variants: [{ build(el) { el.className = 'fps-golf'; } }] },
-  soccer:  { label: 'Soccer Balls',  variants: [{ build(el) { el.className = 'fps-soccer'; el.innerHTML = soccerPatches(); } }] },
+  soccer:  {
+    label: 'Soccer Balls',
+    variants: [{
+      build(el) {
+        el.className = 'fps-soccer';
+        el.innerHTML = `<div class="fps-soccer-pattern">${soccerPatches()}</div><div class="fps-soccer-shading"></div>`;
+        // Shading counter-rotates to stay fixed (like a real light source)
+        // while the pattern spins with the particle — that split is what
+        // sells the "rolling sphere" look instead of a flat spinning sticker.
+        // rollFactor ties rotation speed to actual movement speed, like a
+        // ball rolling rather than spinning arbitrarily.
+        return { counterRotate: el.querySelector('.fps-soccer-shading'), rollFactor: 7 };
+      },
+    }],
+  },
   leaves:  {
     label: 'Autumn Leaves',
     variants: [
@@ -185,11 +224,16 @@ export const CATEGORY_DEFS = {
   },
   coffee: {
     label: 'Coffee Beans',
-    variants: [
-      { build(el) { el.className = 'fps-bean fps-bean-light'; } },
-      { build(el) { el.className = 'fps-bean fps-bean-medium'; } },
-      { build(el) { el.className = 'fps-bean fps-bean-dark'; } },
-    ],
+    variants: [{
+      build(el) {
+        const roasts = ['fps-bean-light', 'fps-bean-medium', 'fps-bean-dark'];
+        el.className = 'fps-bean ' + roasts[Math.floor(Math.random() * roasts.length)];
+        // Robusta-style straight split or Arabica-style curved split, picked at random
+        el.innerHTML = Math.random() < 0.5
+          ? `<span class="fps-bean-crease-straight"></span>`
+          : `<span class="fps-bean-crease-curved-top"></span><span class="fps-bean-crease-curved-bottom"></span>`;
+      },
+    }],
   },
   emoji3d: {
     label: '3D Emoji',
@@ -314,6 +358,7 @@ export class FloatingParticleSystem {
     inner.className = 'fps-particle-inner';
     wrapper.appendChild(inner);
 
+    let buildResult = null;
     if (this.category === 'custom') {
       const img = document.createElement('img');
       img.className = 'fps-custom-img';
@@ -322,7 +367,7 @@ export class FloatingParticleSystem {
     } else {
       const def = CATEGORY_DEFS[this.category];
       const variant = def.variants[Math.floor(Math.random() * def.variants.length)];
-      variant.build(inner);
+      buildResult = variant.build(inner) || null;
     }
 
     this.container.appendChild(wrapper);
@@ -335,6 +380,8 @@ export class FloatingParticleSystem {
       angularVelocity: (Math.random() - 0.5) * 1.2,
       flutterPhase: Math.random() * Math.PI * 2,
       el: wrapper,
+      counterRotateEl: buildResult?.counterRotate || null,
+      rollFactor: buildResult?.rollFactor || 0,
     };
   }
 
@@ -356,8 +403,15 @@ export class FloatingParticleSystem {
       p.vy *= this.friction;
       p.x += p.vx;
       p.y += p.vy;
+      if (p.rollFactor) {
+        // True rolling: rotation speed tracks actual movement speed,
+        // rather than spinning from an independent angular velocity.
+        const speed = Math.hypot(p.vx, p.vy);
+        p.angularVelocity = speed * p.rollFactor * (p.vx < 0 ? -1 : 1);
+      } else {
+        p.angularVelocity *= 0.995;
+      }
       p.angle += p.angularVelocity;
-      p.angularVelocity *= 0.995;
     });
 
     // Edges: drift off-frame and wrap back in from a random point on the
@@ -394,8 +448,12 @@ export class FloatingParticleSystem {
     }
 
     this.particles.forEach(p => {
-      const flutter = Math.sin(performance.now() / 500 + p.flutterPhase) * 4;
-      p.el.style.transform = `translate(${p.x - p.r}px, ${p.y - p.r}px) rotate(${p.angle + flutter}deg)`;
+      const flutter = p.rollFactor ? 0 : Math.sin(performance.now() / 500 + p.flutterPhase) * 4;
+      const totalAngle = p.angle + flutter;
+      p.el.style.transform = `translate(${p.x - p.r}px, ${p.y - p.r}px) rotate(${totalAngle}deg)`;
+      if (p.counterRotateEl) {
+        p.counterRotateEl.style.transform = `rotate(${-totalAngle}deg)`;
+      }
     });
   }
 }
@@ -412,6 +470,15 @@ export class FloatingParticleSystem {
 // 2. Add an entry to CATEGORY_DEFS:
 //      snowflake: { label: 'Snowflakes', variants: [{ build(el) { el.className = 'fps-snowflake'; } }] }
 // 3. It now appears wherever you list Object.keys(CATEGORY_DEFS) in your UI.
+//
+// build(el) can optionally return { counterRotate, rollFactor }:
+//   counterRotate  a child element that should stay visually fixed while
+//                  the rest of the particle rotates — e.g. a lighting
+//                  overlay that shouldn't spin with a rolling pattern
+//                  underneath it (see the soccer ball category).
+//   rollFactor     makes rotation speed track actual movement speed
+//                  instead of an independent spin (true "rolling" rather
+//                  than arbitrary tumbling) — also used by the soccer ball.
 //
 // ADDING A NEW EMOJI-STYLE VARIANT (within emoji3d)
 // -----------------------------------
