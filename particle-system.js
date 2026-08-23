@@ -3,7 +3,7 @@
 // DOM-based floating particle system. No canvas, no WebGL, no external
 // libraries. Built-in categories are pure CSS (gradients, box-shadow,
 // clip-path, pseudo-elements) — no external images, except the soccer
-// ball, which uses the real ⚽ emoji (see note on that category below).
+// ball, which deliberately uses the real ⚽ emoji (see that category).
 // Custom PNGs are supported as an additional category.
 //
 // USAGE
@@ -11,7 +11,7 @@
 //   const arena = document.getElementById('my-arena'); // position:relative, overflow:hidden
 //   const system = new FloatingParticleSystem(arena, { count: 10, minRadius: 12, maxRadius: 26 });
 //   system.setWheelBounds({ cx: 160, cy: 160, r: 104 }); // wheel circle, arena-local coords
-//   system.setCategory('planets');       // or 'ice' | 'golf' | 'soccer' | 'leaves' | 'coffee' | 'emoji3d' | 'custom' | 'none'
+//   system.setCategory('planets');       // or 'ice'|'golf'|'soccer'|'leaves'|'coffee'|'emoji3d'|'tennis'|'shells'|'fruits'|'custom'|'none'
 //   system.setUploadedIcons([url1, url2]); // switches to 'custom' automatically
 //   system.setCount(14);
 //   system.applySpinForce(6);            // call when the wheel starts spinning
@@ -102,6 +102,117 @@ const CSS_TEXT = `
 .fps-bean-medium { background: radial-gradient(circle at 35% 30%, #a9744a 0%, #8b5a2b 55%, #5e3a1a 100%); }
 .fps-bean-dark   { background: radial-gradient(circle at 35% 30%, #5c4632 0%, #3e2418 55%, #221209 100%); }
 
+/* ---------- Tennis ball ---------- */
+.fps-tennis {
+  width:100%; height:100%; border-radius:50%; position:relative; overflow:hidden;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,0.35) 0.8px, transparent 1.2px) 0 0 / 5px 5px,
+    radial-gradient(circle at 65% 70%, rgba(0,0,0,0.12) 0.8px, transparent 1.2px) 2px 2px / 6px 6px,
+    radial-gradient(circle at 32% 28%, #EAF878 0%, #D4EE2E 45%, #A9C21B 85%, #86A00F 100%);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.35);
+}
+.fps-tennis-seam { position:absolute; background:#F8FBEA; border-radius:50%; }
+
+/* ---------- Seashells ---------- */
+.fps-shell-scallop {
+  width:100%; height:78%; margin-top:11%; position:relative;
+  clip-path: polygon(50% 0%, 78% 8%, 94% 30%, 100% 60%, 84% 100%, 16% 100%, 0% 60%, 6% 30%, 22% 8%);
+  background: radial-gradient(circle at 50% 15%, #FFF6EA 0%, #F3D9B8 45%, #D9AE7C 85%, #C09763 100%);
+  box-shadow: 0 2px 3px rgba(0,0,0,0.25);
+}
+.fps-shell-ridge { position:absolute; background: rgba(150,110,70,0.35); border-radius:3px; }
+.fps-shell-spiral {
+  width:100%; height:100%; border-radius:50%; position:relative; overflow:hidden;
+  background: conic-gradient(from 200deg at 62% 55%,
+    #F3E3C8 0deg, #D9B98C 25deg, #F3E3C8 50deg, #C79A66 75deg,
+    #F3E3C8 100deg, #D9B98C 125deg, #F3E3C8 150deg, #C79A66 175deg,
+    #F3E3C8 200deg, #D9B98C 225deg, #F3E3C8 250deg, #C79A66 275deg,
+    #F3E3C8 300deg, #D9B98C 325deg, #F3E3C8 350deg, #C79A66 360deg);
+  box-shadow: inset 0 0 8px rgba(120,80,40,0.35), 0 2px 4px rgba(0,0,0,0.3);
+}
+.fps-shell-clam {
+  width:100%; height:82%; margin-top:9%; position:relative;
+  border-radius: 50% 50% 8% 8% / 100% 100% 10% 10%;
+  background: radial-gradient(circle at 50% 20%, #FFF8F0 0%, #F5DCC4 40%, #E0BFA0 75%, #C9A17D 100%);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+}
+.fps-shell-clam-ring { position:absolute; border: 1.5px solid rgba(140,100,65,0.3); border-radius:50%; }
+
+/* ---------- Fruits ---------- */
+.fps-apple {
+  width:88%; height:88%; margin:6%; position:relative;
+  border-radius: 50% 50% 48% 48% / 58% 58% 42% 42%;
+  box-shadow: 1px 2px 3px rgba(0,0,0,0.3);
+}
+.fps-apple-red   { background: radial-gradient(circle at 32% 28%, #FF8A7A 0%, #E8433A 50%, #A81E1E 100%); }
+.fps-apple-green { background: radial-gradient(circle at 32% 28%, #C6E88A 0%, #8FC93E 50%, #5A8E1E 100%); }
+.fps-apple-dimple { position:absolute; top:-2%; left:44%; width:14%; height:12%; border-radius:50%; background: rgba(0,0,0,0.18); }
+.fps-apple-stem { position:absolute; top:-11%; left:47%; width:6%; height:16%; background:#6B4A2B; border-radius:2px; transform: rotate(8deg); }
+.fps-apple-leaf { position:absolute; top:-10%; left:51%; width:20%; height:12%; background: linear-gradient(135deg,#8FC93E,#4F7A1E); border-radius: 0% 100% 0% 100%; transform: rotate(-20deg); }
+
+.fps-orange {
+  width:100%; height:100%; border-radius:50%; position:relative; overflow:hidden;
+  background: #F7C948;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+.fps-orange-pith { position:absolute; inset:6%; border-radius:50%; background:#FFF7E0; }
+.fps-orange-flesh {
+  position:absolute; inset:11%; border-radius:50%;
+  background: conic-gradient(from 0deg,
+    #FFA845 0deg 40deg, #FF8F1F 40deg 42deg,
+    #FFA23C 42deg 82deg, #FF8F1F 82deg 84deg,
+    #FFA845 84deg 124deg, #FF8F1F 124deg 126deg,
+    #FFA23C 126deg 166deg, #FF8F1F 166deg 168deg,
+    #FFA845 168deg 208deg, #FF8F1F 208deg 210deg,
+    #FFA23C 210deg 250deg, #FF8F1F 250deg 252deg,
+    #FFA845 252deg 292deg, #FF8F1F 292deg 294deg,
+    #FFA23C 294deg 334deg, #FF8F1F 334deg 336deg,
+    #FFA845 336deg 360deg);
+}
+
+.fps-banana {
+  width:112%; height:34%; margin-top:33%; margin-left:-6%; position:relative;
+  border-radius:50%; transform: rotate(-18deg);
+  background: linear-gradient(160deg, #FFF3A0 0%, #F5D93C 45%, #D9B61E 85%, #B89416 100%);
+  box-shadow: 1px 2px 3px rgba(0,0,0,0.28);
+}
+.fps-banana-tip { position:absolute; width:9%; height:80%; top:10%; background:#6B5230; border-radius:40%; }
+
+.fps-strawberry {
+  width:82%; height:88%; margin:6% 9%; position:relative;
+  clip-path: polygon(50% 100%, 14% 55%, 8% 30%, 22% 10%, 50% 22%, 78% 10%, 92% 30%, 86% 55%);
+  background-image:
+    radial-gradient(circle, #FFE9A8 1px, transparent 1.4px),
+    radial-gradient(circle at 38% 30%, #FF8FA0 0%, #F23A56 50%, #B81833 100%);
+  background-size: 16% 16%, 100% 100%;
+  box-shadow: 1px 2px 3px rgba(0,0,0,0.3);
+}
+.fps-strawberry-leaf {
+  position:absolute; top:-10%; left:20%; width:60%; height:22%; background:#4F8A2F;
+  clip-path: polygon(0% 50%, 20% 0%, 40% 50%, 60% 0%, 80% 50%, 100% 0%, 90% 100%, 10% 100%);
+}
+
+.fps-blueberry {
+  width:100%; height:100%; border-radius:50%; position:relative;
+  background: radial-gradient(circle at 32% 28%, #8FA8E0 0%, #4A5FB8 45%, #2B3470 85%, #1A2050 100%);
+  box-shadow: 0 2px 3px rgba(0,0,0,0.3);
+}
+.fps-blueberry-crown {
+  position:absolute; top:4%; left:38%; width:24%; height:24%; background:#141936;
+  clip-path: polygon(50% 0%, 61% 35%, 100% 38%, 72% 60%, 82% 96%, 50% 76%, 18% 96%, 28% 60%, 0% 38%, 39% 35%);
+}
+
+.fps-watermelon {
+  width:100%; height:100%; position:relative;
+  clip-path: polygon(50% 100%, 3% 20%, 12% 8%, 88% 8%, 97% 20%);
+  background: linear-gradient(180deg,
+    #2E7D32 0%, #2E7D32 14%,
+    #EFF7E6 14%, #EFF7E6 22%,
+    #E8425F 22%, #C41E3A 100%);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+.fps-seed { position:absolute; width:6%; height:9%; background:#2B1B10; border-radius:50%; }
+
 /* ---------- 3D emoji ---------- */
 .fps-emoji-face { width:100%; height:100%; border-radius:50%; position:relative; box-shadow: inset -3px -3px 6px rgba(0,0,0,0.25), inset 2px 2px 4px rgba(255,255,255,0.5); }
 .fps-emoji-yellow { background: radial-gradient(circle at 35% 30%, #ffe27a 0%, #ffcc33 55%, #e0a616 100%); }
@@ -150,6 +261,32 @@ function leafVeins() {
     <span class="fps-leaf-vein" style="left:28%; top:26%; width:22%; height:3%; transform-origin:right center; transform:rotate(-35deg);"></span>
     <span class="fps-leaf-vein" style="left:28%; top:46%; width:20%; height:3%; transform-origin:right center; transform:rotate(-32deg);"></span>
   `;
+}
+function tennisSeam() {
+  return `
+    <span class="fps-tennis-seam" style="width:14%;height:62%;top:-6%;left:20%;transform:rotate(-30deg);transform-origin:bottom center;"></span>
+    <span class="fps-tennis-seam" style="width:14%;height:62%;top:44%;left:30%;transform:rotate(28deg);transform-origin:top center;"></span>
+    <span class="fps-tennis-seam" style="width:14%;height:62%;top:-6%;left:66%;transform:rotate(30deg);transform-origin:bottom center;"></span>
+    <span class="fps-tennis-seam" style="width:14%;height:62%;top:44%;left:56%;transform:rotate(-28deg);transform-origin:top center;"></span>
+  `;
+}
+function scallopRidges() {
+  return [-75, -50, -25, 0, 25, 50, 75].map(angle =>
+    `<span class="fps-shell-ridge" style="left:50%; top:2%; width:5%; height:88%; transform-origin:top center; transform:rotate(${angle}deg);"></span>`
+  ).join('');
+}
+function clamRings() {
+  return `
+    <span class="fps-shell-clam-ring" style="top:16%; left:12%; width:76%; height:66%;"></span>
+    <span class="fps-shell-clam-ring" style="top:28%; left:24%; width:52%; height:46%;"></span>
+    <span class="fps-shell-clam-ring" style="top:40%; left:36%; width:28%; height:26%;"></span>
+  `;
+}
+function watermelonSeeds() {
+  const spots = [[30, 58], [52, 64], [68, 60], [38, 78], [60, 80], [48, 90]];
+  return spots.map(([left, top]) =>
+    `<span class="fps-seed" style="left:${left}%; top:${top}%; transform:rotate(${Math.floor(Math.random() * 60 - 30)}deg);"></span>`
+  ).join('');
 }
 
 // ---------- Category registry ----------
@@ -218,6 +355,53 @@ export const CATEGORY_DEFS = {
       { build(el) { el.className = ''; el.innerHTML = `<span class="fps-heart-shape"></span>`; } },
       { build(el) { faceBase(el, ''); el.innerHTML = `<span class="fps-eye-heart" style="left:22%"><span class="fps-heart-shape"></span></span><span class="fps-eye-heart" style="right:22%"><span class="fps-heart-shape"></span></span><span class="fps-mouth-smile"></span>`; } },
       { build(el) { el.className = 'fps-star-shape'; } },
+    ],
+  },
+  tennis: {
+    label: 'Tennis Balls',
+    variants: [{
+      build(el) {
+        el.className = 'fps-tennis';
+        el.innerHTML = tennisSeam();
+        return { rollFactor: 6 };
+      },
+    }],
+  },
+  shells: {
+    label: 'Seashells',
+    variants: [
+      { build(el) { el.className = 'fps-shell-scallop'; el.innerHTML = scallopRidges(); } },
+      { build(el) { el.className = 'fps-shell-spiral'; } },
+      { build(el) { el.className = 'fps-shell-clam'; el.innerHTML = clamRings(); } },
+    ],
+  },
+  fruits: {
+    label: 'Fruits',
+    variants: [
+      { build(el) {
+        el.className = Math.random() < 0.5 ? 'fps-apple fps-apple-red' : 'fps-apple fps-apple-green';
+        el.innerHTML = `<span class="fps-apple-dimple"></span><span class="fps-apple-stem"></span><span class="fps-apple-leaf"></span>`;
+      } },
+      { build(el) {
+        el.className = 'fps-orange';
+        el.innerHTML = `<span class="fps-orange-pith"></span><span class="fps-orange-flesh"></span>`;
+      } },
+      { build(el) {
+        el.className = 'fps-banana';
+        el.innerHTML = `<span class="fps-banana-tip" style="left:-3%;"></span><span class="fps-banana-tip" style="right:-3%;"></span>`;
+      } },
+      { build(el) {
+        el.className = 'fps-strawberry';
+        el.innerHTML = `<span class="fps-strawberry-leaf"></span>`;
+      } },
+      { build(el) {
+        el.className = 'fps-blueberry';
+        el.innerHTML = `<span class="fps-blueberry-crown"></span>`;
+      } },
+      { build(el) {
+        el.className = 'fps-watermelon';
+        el.innerHTML = watermelonSeeds();
+      } },
     ],
   },
 };
@@ -378,8 +562,6 @@ export class FloatingParticleSystem {
       p.x += p.vx;
       p.y += p.vy;
       if (p.rollFactor) {
-        // True rolling: rotation speed tracks actual movement speed,
-        // rather than spinning from an independent angular velocity.
         const speed = Math.hypot(p.vx, p.vy);
         p.angularVelocity = speed * p.rollFactor * (p.vx < 0 ? -1 : 1);
       } else {
@@ -388,10 +570,6 @@ export class FloatingParticleSystem {
       p.angle += p.angularVelocity;
     });
 
-    // Edges: drift off-frame and wrap back in from a random point on the
-    // opposite side, rather than bouncing. The wheel is intentionally NOT
-    // a physical obstacle here — particles pass freely behind it via the
-    // CSS mask set up in _applyWheelMask(), not any per-frame logic here.
     this.particles.forEach(p => {
       const margin = p.r * 2;
       if (p.x < -margin) { p.x = w + margin; p.y = Math.random() * h; }
@@ -457,7 +635,7 @@ export class FloatingParticleSystem {
 //                  underneath it.
 //   rollFactor     makes rotation speed track actual movement speed
 //                  instead of an independent spin (true "rolling" rather
-//                  than arbitrary tumbling) — used by the soccer ball.
+//                  than arbitrary tumbling) — used by soccer and tennis.
 //
 // ADDING A NEW EMOJI-STYLE VARIANT (within emoji3d)
 // -----------------------------------
@@ -485,18 +663,10 @@ export class FloatingParticleSystem {
 //
 // Edges: particles are NOT walled in — once they drift past the edge by
 // more than 2×radius they wrap to a random point on the opposite side.
-// To make that feel slower/rarer, lower driftForce so particles wander
-// less; to make it feel busier, raise count or driftForce.
 //
-// The wheel: not a physics obstacle — particles pass freely behind it.
-// Occlusion is a CSS mask (radial-gradient hole matching the wheel's
-// circle) applied to the whole particle container via setWheelBounds(),
-// so any particle crossing that boundary is clipped continuously and
-// naturally, frame by frame, with no JS front/behind logic needed. If you
-// ever want the old "bounce off the wheel" behaviour for a different
-// context, that's a position-correction + velocity-reflection block
-// against a static circle at { cx, cy, r: wheelR + p.r } — same shape as
-// the wall-wrap block above, just with reflection instead of wrapping.
+// The wheel: not a physics obstacle — particles pass freely behind it via
+// a CSS mask cut in the container (setWheelBounds()), clipped continuously
+// as they cross that boundary, no per-frame front/behind logic needed.
 //
 // For a punchier spin reaction: raise the strength argument passed to
 // applySpinForce(), or lower the r*3 falloff divisor inside it so the
